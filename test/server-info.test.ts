@@ -13,10 +13,10 @@ describe("getServerInfo", () => {
   });
 
   it("reports pillar availability derived from committed artifacts", () => {
-    // Phase 2 ships the symbol DBs, so apiSymbols is available; the grammar
-    // WASM (Phase 3) and scene analyzer (Phase 4) are not yet present.
+    // Phases 2 and 3 ship the symbol DBs and the grammar WASM; the scene
+    // analyzer (Phase 4) is not yet present.
     expect(getServerInfo().pillars).toEqual({
-      gdscriptLint: false,
+      gdscriptLint: true,
       apiSymbols: true,
       sceneResourceAnalysis: false,
     });

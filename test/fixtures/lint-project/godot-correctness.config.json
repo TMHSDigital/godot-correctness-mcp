@@ -1,0 +1,6 @@
+{
+  "rules": {
+    "untyped-declaration": { "severity": "info" },
+    "float-grid-equality": { "enabled": false }
+  }
+}
