@@ -2,6 +2,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { pathToFileURL } from "node:url";
+import { registerSkillResources } from "./resources/skills.js";
 import { getServerInfo, readVersion, SERVER_NAME } from "./server-info.js";
 import { registerApiTools } from "./tools/api.js";
 import { registerLintTools } from "./tools/lint.js";
@@ -25,6 +26,7 @@ export function createServer(): McpServer {
   registerApiTools(server);
   registerLintTools(server);
   registerSceneTools(server);
+  registerSkillResources(server);
 
   return server;
 }
