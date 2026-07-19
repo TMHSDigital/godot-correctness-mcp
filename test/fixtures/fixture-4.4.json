@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "godotVersion": "4.4.1",
+    "versionLabel": "4.4",
+    "versionFull": "4.4.1.stable.official",
+    "releaseTag": "4.4.1-stable",
+    "archiveName": null,
+    "archiveSha256": null,
+    "source": "fixture",
+    "schemaVersion": 1,
+    "generatedAt": "2026-01-01T00:00:00.000Z"
+  },
+  "classes": {
+    "Object": {
+      "inherits": null,
+      "apiType": "core",
+      "methods": [{ "name": "get_class", "ret": "String", "args": [], "isConst": true }],
+      "properties": [],
+      "signals": [{ "name": "script_changed", "args": [] }],
+      "enums": [],
+      "constants": []
+    },
+    "Node": {
+      "inherits": "Object",
+      "apiType": "core",
+      "isInstantiable": true,
+      "methods": [
+        { "name": "get_child_count", "ret": "int", "args": [{ "name": "include_internal", "type": "bool", "default": "false" }], "isConst": true },
+        { "name": "queue_free", "ret": null, "args": [] }
+      ],
+      "properties": [{ "name": "name", "type": "StringName", "getter": "get_name", "setter": "set_name" }],
+      "signals": [{ "name": "ready", "args": [] }],
+      "enums": [{ "name": "ProcessMode", "values": [{ "name": "PROCESS_MODE_INHERIT", "value": 0 }, { "name": "PROCESS_MODE_PAUSABLE", "value": 1 }] }],
+      "constants": []
+    },
+    "CharacterBody2D": {
+      "inherits": "Node",
+      "apiType": "core",
+      "isInstantiable": true,
+      "methods": [
+        { "name": "move_and_slide", "ret": "bool", "args": [] },
+        { "name": "is_on_floor", "ret": "bool", "args": [], "isConst": true },
+        { "name": "deprecated_helper", "ret": null, "args": [] }
+      ],
+      "properties": [{ "name": "velocity", "type": "Vector2", "getter": "get_velocity", "setter": "set_velocity" }],
+      "signals": [],
+      "enums": [],
+      "constants": [{ "name": "MOTION_MODE_GROUNDED", "value": 0 }]
+    }
+  },
+  "builtinClasses": {
+    "Vector2": {
+      "members": [{ "name": "x", "type": "float" }, { "name": "y", "type": "float" }],
+      "constants": [{ "name": "ZERO", "type": "Vector2", "value": "Vector2(0, 0)" }],
+      "enums": [],
+      "operators": [{ "name": "==", "right": "Vector2", "ret": "bool" }],
+      "methods": [{ "name": "length", "ret": "float", "args": [], "isConst": true }]
+    }
+  },
+  "utilityFunctions": [
+    { "name": "lerp", "ret": "Variant", "category": "math", "args": [{ "name": "from", "type": "Variant" }, { "name": "to", "type": "Variant" }, { "name": "weight", "type": "float" }] }
+  ],
+  "globalEnums": [{ "name": "Side", "values": [{ "name": "SIDE_LEFT", "value": 0 }, { "name": "SIDE_TOP", "value": 1 }] }],
+  "singletons": [{ "name": "Engine", "type": "Engine" }]
+}

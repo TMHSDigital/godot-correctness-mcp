@@ -7,5 +7,43 @@
       "properties": {},
       "required": []
     }
+  },
+  {
+    "name": "api_symbol_lookup",
+    "description": "Look up a Godot API symbol (class, method, property, or signal) by name across the pinned Godot versions. Supports 'Owner.member' queries. Returns full signature data, or closest-match suggestions on a miss.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": { "type": "string", "description": "Symbol name, e.g. 'Node', 'move_and_slide', or 'Node.get_child_count'" },
+        "version": { "type": "string", "enum": ["4.4", "4.5"], "description": "Limit to one version; omit to search all available versions" },
+        "kind": { "type": "string", "enum": ["class", "method", "property", "signal", "enum", "constant", "builtin_class", "builtin_method", "utility_function", "singleton", "global_enum"], "description": "Restrict results to one symbol kind" }
+      },
+      "required": ["symbol"]
+    }
+  },
+  {
+    "name": "api_class_summary",
+    "description": "Full member listing for one Godot class in one version: inheritance chain, methods, properties, signals, enums, and constants.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "class": { "type": "string", "description": "Class name, e.g. 'CharacterBody2D'" },
+        "version": { "type": "string", "enum": ["4.4", "4.5"], "description": "Which Godot version to summarize" }
+      },
+      "required": ["class", "version"]
+    }
+  },
+  {
+    "name": "api_diff",
+    "description": "Diff a Godot class or symbol between two versions (default 4.4 -> 4.5): what was added, removed, or had its signature changed, with old and new signatures side by side.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "symbol": { "type": "string", "description": "Class name (e.g. 'TileMap') or symbol (e.g. 'move_and_slide')" },
+        "from": { "type": "string", "enum": ["4.4", "4.5"], "description": "Base version (default 4.4)" },
+        "to": { "type": "string", "enum": ["4.4", "4.5"], "description": "Target version (default 4.5)" }
+      },
+      "required": ["symbol"]
+    }
   }
 ]
