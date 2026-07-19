@@ -1,1 +1,11 @@
-[]
+[
+  {
+    "name": "server_info",
+    "description": "Report this server's version, the pinned Godot versions it targets (4.4, 4.5), and which correctness pillars (GDScript lint, API symbols, scene/resource analysis) are currently available. Takes no arguments.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {},
+      "required": []
+    }
+  }
+]
