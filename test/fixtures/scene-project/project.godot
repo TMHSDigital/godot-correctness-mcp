@@ -1,0 +1,19 @@
+config_version=5
+
+[application]
+
+config/name="SceneFixture"
+run/main_scene="res://Main.tscn"
+
+[autoload]
+
+Good="*res://autoload/game.gd"
+Missing="*res://autoload/nope.gd"
+
+[input]
+
+jump={
+"deadzone": 0.5,
+"events": []
+}
+bad_action="not a dict"

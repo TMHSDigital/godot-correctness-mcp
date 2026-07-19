@@ -22,7 +22,7 @@ function parse(result: unknown): any {
 }
 
 describe("API tools (offline, in-memory, real artifacts)", () => {
-  it("registers the API and lint tools", async () => {
+  it("registers the API, lint, and scene tools", async () => {
     const names = (await client.listTools()).tools.map((t) => t.name).sort();
     expect(names).toEqual([
       "api_class_summary",
@@ -30,7 +30,11 @@ describe("API tools (offline, in-memory, real artifacts)", () => {
       "api_symbol_lookup",
       "lint_file",
       "lint_project",
+      "project_report",
       "server_info",
+      "validate_project_config",
+      "validate_registries",
+      "validate_scenes",
     ]);
   });
 

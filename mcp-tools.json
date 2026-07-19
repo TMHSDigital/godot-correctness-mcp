@@ -68,5 +68,41 @@
       },
       "required": ["path"]
     }
+  },
+  {
+    "name": "validate_scenes",
+    "description": "Validate every .tscn under a project root: ext_resource paths resolve, ExtResource references are declared, and there are no duplicate resource ids.",
+    "inputSchema": {
+      "type": "object",
+      "properties": { "path": { "type": "string", "description": "Path to the Godot project root" } },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "validate_project_config",
+    "description": "Validate project.godot: the main scene exists, autoload paths exist, and input actions are well-formed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": { "path": { "type": "string", "description": "Path to the Godot project root" } },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "validate_registries",
+    "description": "Deep-validate data-driven .tres registries in the configured registryDirs: each parses, its script resolves (recording class_name), and every resource-path property points at an existing file (the dangling-path check).",
+    "inputSchema": {
+      "type": "object",
+      "properties": { "path": { "type": "string", "description": "Path to the Godot project root" } },
+      "required": ["path"]
+    }
+  },
+  {
+    "name": "project_report",
+    "description": "Aggregate all static checks (scenes, project config, registries, and GDScript lint) into one report with severity counts.",
+    "inputSchema": {
+      "type": "object",
+      "properties": { "path": { "type": "string", "description": "Path to the Godot project root" } },
+      "required": ["path"]
+    }
   }
 ]

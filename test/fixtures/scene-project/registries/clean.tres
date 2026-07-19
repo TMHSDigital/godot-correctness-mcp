@@ -1,0 +1,8 @@
+[gd_resource type="Resource" script_class="Item" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://registries/item.gd" id="1_a"]
+
+[resource]
+script = ExtResource("1_a")
+title = "Sword"
+scene_path = "res://Main.tscn"

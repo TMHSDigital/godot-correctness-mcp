@@ -12,13 +12,12 @@ describe("getServerInfo", () => {
     expect(info.version).toMatch(/^\d+\.\d+\.\d+/);
   });
 
-  it("reports pillar availability derived from committed artifacts", () => {
-    // Phases 2 and 3 ship the symbol DBs and the grammar WASM; the scene
-    // analyzer (Phase 4) is not yet present.
+  it("reports all three pillars available once shipped", () => {
+    // Phase 2 symbol DBs, Phase 3 grammar WASM, Phase 4 scene analyzer.
     expect(getServerInfo().pillars).toEqual({
       gdscriptLint: true,
       apiSymbols: true,
-      sceneResourceAnalysis: false,
+      sceneResourceAnalysis: true,
     });
   });
 });
