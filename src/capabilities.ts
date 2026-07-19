@@ -37,8 +37,8 @@ export function pillarAvailability(): PillarAvailability {
   return {
     gdscriptLint,
     apiSymbols,
-    // Phase 4 is a pure-TypeScript static parser with no external artifact;
-    // it flips to true when that pillar ships.
-    sceneResourceAnalysis: false,
+    // Phase 4 static scene/resource/registry analysis is pure TypeScript with
+    // no external artifact; it is always available once shipped.
+    sceneResourceAnalysis: true,
   };
 }

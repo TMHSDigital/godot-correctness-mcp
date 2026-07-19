@@ -1,0 +1,243 @@
+import { existsSync, readdirSync, readFileSync } from "node:fs";
+import { join, relative, sep } from "node:path";
+import picomatch from "picomatch";
+import {
+  parseGodotFile,
+  sectionsOfKind,
+  type GodotFile,
+  type GodotSection,
+} from "../godot/text-format.js";
+import { loadConfig, type ResolvedConfig } from "../lint/config.js";
+import type { Finding, Severity } from "../lint/types.js";
+import { looksLikeResourcePath, resolveResPath } from "./paths.js";
+
+function toPosix(p: string): string {
+  return p.split(sep).join("/");
+}
+
+/** Recursively collect files with any of the given extensions under `dir`. */
+function collectByExt(dir: string, exts: string[], exclude: (rel: string) => boolean, root: string): string[] {
+  const out: string[] = [];
+  if (!existsSync(dir)) return out;
+  const walk = (d: string): void => {
+    for (const entry of readdirSync(d, { withFileTypes: true })) {
+      const full = join(d, entry.name);
+      const rel = toPosix(relative(root, full));
+      if (entry.isDirectory()) {
+        if (entry.name === ".git" || exclude(rel)) continue;
+        walk(full);
+      } else if (entry.isFile() && exts.some((e) => entry.name.endsWith(e)) && !exclude(rel)) {
+        out.push(full);
+      }
+    }
+  };
+  walk(dir);
+  return out;
+}
+
+function finding(
+  file: string,
+  line: number,
+  ruleId: string,
+  severity: Severity,
+  message: string,
+  suggestion: string,
+): Finding {
+  return { file, line, col: 1, ruleId, severity, message, suggestion };
+}
+
+/** Map of ext_resource id -> its declaration, plus duplicate detection. */
+function extResourceIndex(file: GodotFile): {
+  byId: Map<string, GodotSection>;
+  duplicates: { id: string; section: GodotSection }[];
+} {
+  const byId = new Map<string, GodotSection>();
+  const duplicates: { id: string; section: GodotSection }[] = [];
+  for (const s of sectionsOfKind(file, "ext_resource")) {
+    const id = s.attributes["id"]?.string ?? s.attributes["id"]?.raw;
+    if (!id) continue;
+    if (byId.has(id)) duplicates.push({ id, section: s });
+    else byId.set(id, s);
+  }
+  return { byId, duplicates };
+}
+
+/** Collect all ExtResource("id") references across a section's properties. */
+function extRefs(section: GodotSection): { key: string; ref: string; line: number }[] {
+  const refs: { key: string; ref: string; line: number }[] = [];
+  for (const [key, v] of Object.entries(section.properties)) {
+    if (v.kind === "extResource" && v.ref) refs.push({ key, ref: v.ref, line: v.line });
+  }
+  return refs;
+}
+
+/** validate_scenes: ext_resource paths resolve, ext refs declared, no dup ids. */
+export function validateScenes(root: string, config?: ResolvedConfig): Finding[] {
+  const cfg = config ?? loadConfig(root);
+  const exclude = picomatch([...cfg.exclude, "**/.godot/**"], { dot: true });
+  const findings: Finding[] = [];
+
+  for (const full of collectByExt(root, [".tscn"], exclude, root)) {
+    const rel = toPosix(relative(root, full));
+    const file = parseGodotFile(readFileSync(full, "utf-8"));
+    const { byId, duplicates } = extResourceIndex(file);
+
+    for (const { section } of duplicates) {
+      findings.push(
+        finding(rel, section.line, "scene-duplicate-resource-id", "error",
+          `Duplicate ext_resource id "${section.attributes["id"]?.string ?? ""}".`,
+          "Give each ext_resource a unique id."),
+      );
+    }
+
+    for (const s of sectionsOfKind(file, "ext_resource")) {
+      const path = s.attributes["path"]?.string;
+      if (!path) continue; // uid-only reference; not statically resolvable
+      const abs = resolveResPath(root, path);
+      if (abs && !existsSync(abs)) {
+        findings.push(
+          finding(rel, s.line, "scene-ext-resource-missing", "error",
+            `ext_resource path does not exist: ${path}`,
+            "Fix the path or restore the missing file."),
+        );
+      }
+    }
+
+    for (const section of [...sectionsOfKind(file, "node"), ...sectionsOfKind(file, "resource")]) {
+      for (const { ref, line } of extRefs(section)) {
+        if (!byId.has(ref)) {
+          findings.push(
+            finding(rel, line, "scene-missing-ext-resource-id", "error",
+              `ExtResource("${ref}") is not declared in this scene.`,
+              "Add the ext_resource declaration or fix the id."),
+          );
+        }
+      }
+    }
+  }
+  return findings;
+}
+
+/** validate_project_config: main scene, autoloads, input map. */
+export function validateProjectConfig(root: string): Finding[] {
+  const projectPath = join(root, "project.godot");
+  if (!existsSync(projectPath)) {
+    return [finding("project.godot", 1, "project-missing", "error",
+      "No project.godot found at the project root.", "Point the tool at a Godot project root.")];
+  }
+  const rel = "project.godot";
+  const file = parseGodotFile(readFileSync(projectPath, "utf-8"));
+  const findings: Finding[] = [];
+
+  const app = file.sections.find((s) => s.kind === "application");
+  const mainScene = app?.properties["run/main_scene"];
+  if (mainScene?.kind === "string" && mainScene.string) {
+    const abs = resolveResPath(root, mainScene.string);
+    if (abs && !existsSync(abs)) {
+      findings.push(finding(rel, mainScene.line, "project-main-scene-missing", "error",
+        `Main scene does not exist: ${mainScene.string}`, "Fix run/main_scene or restore the scene."));
+    }
+  }
+
+  const autoload = file.sections.find((s) => s.kind === "autoload");
+  if (autoload) {
+    for (const [name, v] of Object.entries(autoload.properties)) {
+      if (v.kind !== "string" || !v.string) continue;
+      const p = v.string.replace(/^\*/, ""); // leading * marks an enabled singleton
+      const abs = resolveResPath(root, p);
+      if (abs && !existsSync(abs)) {
+        findings.push(finding(rel, v.line, "project-autoload-missing", "error",
+          `Autoload "${name}" points at a missing file: ${p}`,
+          "Fix the autoload path or restore the file."));
+      }
+    }
+  }
+
+  const input = file.sections.find((s) => s.kind === "input");
+  if (input) {
+    for (const [name, v] of Object.entries(input.properties)) {
+      if (!v.raw.trimStart().startsWith("{")) {
+        findings.push(finding(rel, v.line, "project-input-malformed", "warning",
+          `Input action "${name}" is not a well-formed action dictionary.`,
+          "Each input action should be a { \"deadzone\": ..., \"events\": [...] } dictionary."));
+      }
+    }
+  }
+  return findings;
+}
+
+function readClassName(gdAbsPath: string): string | null {
+  try {
+    const m = /^\s*class_name\s+(\w+)/m.exec(readFileSync(gdAbsPath, "utf-8"));
+    return m ? m[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface RegistryEntry {
+  file: string;
+  scriptClass: string | null;
+}
+
+export interface RegistryResult {
+  findings: Finding[];
+  entries: RegistryEntry[];
+}
+
+/** validate_registries: parse, script resolution + class_name, dangling paths. */
+export function validateRegistries(root: string, config?: ResolvedConfig): RegistryResult {
+  const cfg = config ?? loadConfig(root);
+  const exclude = picomatch([...cfg.exclude, "**/.godot/**"], { dot: true });
+  const findings: Finding[] = [];
+  const entries: RegistryEntry[] = [];
+
+  for (const dirRel of cfg.registryDirs) {
+    const dirAbs = join(root, dirRel);
+    for (const full of collectByExt(dirAbs, [".tres"], exclude, root)) {
+      const rel = toPosix(relative(root, full));
+      const file = parseGodotFile(readFileSync(full, "utf-8"));
+
+      if (!file.header || file.header.kind !== "gd_resource") {
+        findings.push(finding(rel, 1, "registry-parse-error", "error",
+          "File does not parse as a Godot text resource (missing gd_resource header).",
+          "Ensure the .tres is a valid, uncorrupted Godot resource."));
+        continue;
+      }
+
+      const { byId } = extResourceIndex(file);
+      const resource = file.sections.find((s) => s.kind === "resource");
+      let scriptClass: string | null = null;
+
+      // Script resolution + class_name capture.
+      const scriptRef = resource?.properties["script"];
+      if (scriptRef?.kind === "extResource" && scriptRef.ref) {
+        const decl = byId.get(scriptRef.ref);
+        const path = decl?.attributes["path"]?.string;
+        const abs = path ? resolveResPath(root, path) : null;
+        if (!decl || !abs || !existsSync(abs)) {
+          findings.push(finding(rel, scriptRef.line, "registry-script-missing", "error",
+            `Registry script target does not exist: ${path ?? scriptRef.ref}`,
+            "Fix the script ext_resource path or restore the .gd."));
+        } else {
+          scriptClass = readClassName(abs);
+        }
+      }
+      entries.push({ file: rel, scriptClass });
+
+      // Dangling resource-path properties across every section.
+      for (const section of [resource, ...sectionsOfKind(file, "sub_resource")].filter(Boolean) as GodotSection[]) {
+        for (const [key, v] of Object.entries(section.properties)) {
+          if (!looksLikeResourcePath(v, key, cfg.pathPropertyPatterns)) continue;
+          const abs = resolveResPath(root, v.string ?? "");
+          if (abs && !existsSync(abs)) {
+            findings.push(finding(rel, v.line, "registry-dangling-path", "error",
+              `Property "${key}" points at a missing resource: ${v.string}`,
+              "Fix the path or restore the referenced file. These fail only at runtime scene load."));
+          }
+        }
+      }
+    }
+  }
+  return { findings, entries };
+}

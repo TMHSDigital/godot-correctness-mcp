@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 import { getServerInfo, readVersion, SERVER_NAME } from "./server-info.js";
 import { registerApiTools } from "./tools/api.js";
 import { registerLintTools } from "./tools/lint.js";
+import { registerSceneTools } from "./tools/scenes.js";
 
 /** Build the MCP server with all tools registered. Exported for offline tests. */
 export function createServer(): McpServer {
@@ -23,6 +24,7 @@ export function createServer(): McpServer {
 
   registerApiTools(server);
   registerLintTools(server);
+  registerSceneTools(server);
 
   return server;
 }
