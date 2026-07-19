@@ -1,0 +1,13 @@
+{
+  "$comment": "Copy to 'godot-correctness.config.json' at your project root. All fields are optional; defaults apply when omitted or when the file is absent.",
+  "include": ["**/*.gd"],
+  "exclude": ["**/.godot/**", "**/addons/**"],
+  "rules": {
+    "untyped-declaration": { "severity": "info" },
+    "stringly-nodepath": { "enabled": true },
+    "float-grid-equality": { "enabled": false },
+    "connect-without-disconnect": { "severity": "warning" }
+  },
+  "registryDirs": ["resources/registries"],
+  "pathPropertyPatterns": ["*_path", "*_scene", "*_texture", "*_resource"]
+}

@@ -1,0 +1,7 @@
+; Engine configuration file (fixture)
+config_version=5
+
+[application]
+
+config/name="CleanFixture"
+run/main_scene="res://Main.tscn"

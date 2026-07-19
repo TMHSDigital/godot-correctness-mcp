@@ -22,9 +22,16 @@ function parse(result: unknown): any {
 }
 
 describe("API tools (offline, in-memory, real artifacts)", () => {
-  it("registers all four tools", async () => {
+  it("registers the API and lint tools", async () => {
     const names = (await client.listTools()).tools.map((t) => t.name).sort();
-    expect(names).toEqual(["api_class_summary", "api_diff", "api_symbol_lookup", "server_info"]);
+    expect(names).toEqual([
+      "api_class_summary",
+      "api_diff",
+      "api_symbol_lookup",
+      "lint_file",
+      "lint_project",
+      "server_info",
+    ]);
   });
 
   it("api_symbol_lookup finds move_and_slide in both versions", async () => {
