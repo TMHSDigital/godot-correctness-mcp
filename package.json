@@ -1,0 +1,21 @@
+{
+  "name": "@tmhs/godot-correctness-mcp",
+  "version": "0.1.0",
+  "description": "Offline static correctness MCP server for Godot 4.x GDScript projects",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {"godot-correctness-mcp": "dist/index.js"},
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "build": "echo 'No build target yet'",
+    "test": "echo 'No tests yet' && exit 0",
+    "prepublishOnly": "npm run build"
+  },
+  "author": "TMHSDigital",
+  "license": "CC-BY-NC-ND-4.0",
+  "repository": {"type": "git", "url": "git+https://github.com/TMHSDigital/godot-correctness-mcp.git"},
+  "homepage": "https://github.com/TMHSDigital/godot-correctness-mcp#readme",
+  "bugs": {"url": "https://github.com/TMHSDigital/godot-correctness-mcp/issues"},
+  "keywords": ["mcp", "model-context-protocol", "developer-tools"],
+  "engines": {"node": ">=20.0.0"}
+}
