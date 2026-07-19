@@ -3,6 +3,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { pathToFileURL } from "node:url";
 import { getServerInfo, readVersion, SERVER_NAME } from "./server-info.js";
+import { registerApiTools } from "./tools/api.js";
 
 /** Build the MCP server with all tools registered. Exported for offline tests. */
 export function createServer(): McpServer {
@@ -18,6 +19,8 @@ export function createServer(): McpServer {
       content: [{ type: "text", text: JSON.stringify(getServerInfo(), null, 2) }],
     }),
   );
+
+  registerApiTools(server);
 
   return server;
 }
