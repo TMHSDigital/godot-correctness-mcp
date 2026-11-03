@@ -1,5 +1,5 @@
 import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { z } from "zod";
 import type { Severity } from "./types.js";
 
@@ -57,6 +57,23 @@ export function loadConfig(projectRoot: string): ResolvedConfig {
   if (!existsSync(path)) return resolveConfig();
   const raw = JSON.parse(readFileSync(path, "utf-8")) as unknown;
   return resolveConfig(configSchema.parse(raw));
+}
+
+const PROJECT_MARKER = "project.godot";
+
+/**
+ * Nearest directory from `startDir` upward that holds a lint config or a Godot
+ * project marker (`project.godot`). Falls back to `startDir` when neither is
+ * found, so callers get defaults instead of crossing a project boundary.
+ */
+export function findProjectRoot(startDir: string): string {
+  let dir = startDir;
+  for (;;) {
+    if (existsSync(join(dir, CONFIG_FILENAME)) || existsSync(join(dir, PROJECT_MARKER))) return dir;
+    const parent = dirname(dir);
+    if (parent === dir) return startDir;
+    dir = parent;
+  }
 }
 
 /** Whether a rule is enabled (default: enabled unless explicitly disabled). */

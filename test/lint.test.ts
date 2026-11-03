@@ -5,6 +5,7 @@ import { isGrammarAvailable } from "../src/gdscript/parser.js";
 import { loadConfig, resolveConfig } from "../src/lint/config.js";
 import { runCli } from "../src/cli.js";
 import { lintSource } from "../src/lint/engine.js";
+import { lintFile } from "../src/lint/file.js";
 import { lintProject } from "../src/lint/project.js";
 
 function fixturePath(rel: string): string {
@@ -80,6 +81,31 @@ describe("lintProject", () => {
     expect(res.errorCount).toBeGreaterThan(0); // delta-misuse error
     expect(res.findings.some((f) => f.file.includes(".godot"))).toBe(false);
     expect(res.findings.some((f) => f.ruleId === "float-grid-equality")).toBe(false);
+  });
+});
+
+describe("lintFile", () => {
+  it("resolves config from the nearest project root for files in subfolders", async () => {
+    const file = fixturePath("lint-project/scripts/player.gd");
+    const res = await lintFile(file);
+    // Root config honored: untyped downgraded to info, float-grid-equality disabled
+    expect(res.findings.find((f) => f.ruleId === "untyped-declaration")?.severity).toBe("info");
+    expect(res.findings.some((f) => f.ruleId === "float-grid-equality")).toBe(false);
+    // Reported relative to the project root, matching lint_project
+    expect(res.root).toBe(fixturePath("lint-project"));
+    expect(res.findings.every((f) => f.file === "scripts/player.gd")).toBe(true);
+  });
+
+  it("gives the same findings and severities as lint_project for the same file", async () => {
+    const file = fixturePath("lint-project/scripts/player.gd");
+    const res = await lintFile(file);
+    const project = await lintProject(fixturePath("lint-project"));
+    expect(res.findings).toEqual(project.findings.filter((f) => f.file === "scripts/player.gd"));
+  });
+
+  it("falls back to defaults when no config or project marker exists", async () => {
+    const res = await lintFile(fixturePath("gd/untyped-declaration.gd"));
+    expect(res.findings.find((f) => f.ruleId === "untyped-declaration")?.severity).toBe("warning");
   });
 });
 

@@ -4,6 +4,12 @@ All notable changes to godot-correctness-mcp will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
+## [Unreleased]
+
+### Fixed
+
+- `lint_file` now resolves the config from the nearest `godot-correctness.config.json` or `project.godot` at or above the file's directory, so subfolder files lint with the project config and report paths relative to that root, matching `lint_project`
+
 ## [0.1.1] - 2026-11-03
 
 ### Changed

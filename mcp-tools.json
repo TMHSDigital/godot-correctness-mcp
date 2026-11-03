@@ -48,11 +48,11 @@
   },
   {
     "name": "lint_file",
-    "description": "Lint a single GDScript (.gd) file against the default ruleset. Provide either inline source or a path on disk. Config is loaded from the file's directory if a godot-correctness.config.json is present. Returns a findings array.",
+    "description": "Lint a single GDScript (.gd) file. Provide inline source or a path on disk; the path is always required. Config is loaded from the nearest godot-correctness.config.json or project.godot at or above the file's directory, and findings are reported relative to that root, matching lint_project. Returns a findings array.",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "path": { "type": "string", "description": "Path to the .gd file (used for the reported location and config lookup)" },
+        "path": { "type": "string", "description": "Path to the .gd file (config lookup walks up to the nearest project root)" },
         "source": { "type": "string", "description": "Inline GDScript source; if omitted, the file at 'path' is read" }
       },
       "required": ["path"]

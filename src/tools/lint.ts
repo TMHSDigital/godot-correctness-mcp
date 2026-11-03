@@ -1,9 +1,6 @@
-import { readFileSync } from "node:fs";
-import { dirname } from "node:path";
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { loadConfig } from "../lint/config.js";
-import { lintSource } from "../lint/engine.js";
+import { lintFile } from "../lint/file.js";
 import { lintProject } from "../lint/project.js";
 
 type ToolResult = { content: { type: "text"; text: string }[] };
@@ -20,20 +17,19 @@ function fail(message: string): ToolResult {
 export function registerLintTools(server: McpServer): void {
   server.tool(
     "lint_file",
-    "Lint a single GDScript (.gd) file against the default ruleset. Provide either " +
-      "inline source or a path on disk. Config is loaded from the file's directory " +
-      "if a godot-correctness.config.json is present. Returns a findings array.",
+    "Lint a single GDScript (.gd) file. Provide inline source or a path on disk; the " +
+      "path is always required. Config is loaded from the nearest godot-correctness.config.json " +
+      "or project.godot at or above the file's directory, and findings are reported relative " +
+      "to that root, matching lint_project. Returns a findings array.",
     {
-      path: z.string().describe("Path to the .gd file (used for the reported location and config lookup)"),
+      path: z.string().describe("Path to the .gd file (config lookup walks up to the nearest project root)"),
       source: z.string().optional().describe("Inline GDScript source; if omitted, the file at 'path' is read"),
     },
     async (args) => {
       const { path, source } = args as { path: string; source?: string };
       try {
-        const code = source ?? readFileSync(path, "utf-8");
-        const config = loadConfig(dirname(path));
-        const findings = await lintSource(path, code, config);
-        return ok({ file: path, findings, count: findings.length });
+        const res = await lintFile(path, source);
+        return ok(res);
       } catch (err) {
         return fail(err instanceof Error ? err.message : String(err));
       }
