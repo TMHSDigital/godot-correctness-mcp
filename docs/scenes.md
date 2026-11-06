@@ -3,8 +3,13 @@
 The third pillar statically validates Godot text formats (`.tscn`, `.tres`,
 `project.godot`) with a tolerant, dependency-free parser. No Godot binary,
 editor, or network is required. Exposed as MCP tools and `gdcorrect` CLI
-subcommands, all sharing the lint pillar's findings-array and exit-code contract
-(0 clean, 1 on any error-severity finding, 2 tool failure).
+subcommands. Every command reports a `findings` array with the same finding
+shape as lint, and the same exit codes (0 when nothing reaches `--fail-on`,
+default `error`; 1 otherwise; 2 on a usage, config, or tool error). The
+surrounding JSON differs by command: `validate-scenes` and `validate-project`
+return `{ root, findings, count }`, `validate-registries` adds `entries`, and
+`report` groups findings into `scenes`, `project`, `registries`, and `lint`
+with totals.
 
 ## Checks
 
@@ -42,7 +47,8 @@ Reads `project.godot`:
 | `project-input-action-undefined` | warning | A string-literal action name passed to `Input.is_action_*`, `get_action_strength`, `get_axis`, or `get_vector` in a `.gd` file that is not defined in `[input]` (built-in `ui_*` actions are allowed; `InputMap.has_action` is ignored). |
 
 ### validate_registries (`gdcorrect validate-registries`) — the headline check
-For each directory in `registryDirs`, every `.tres`:
+For each directory in `registryDirs`, every `.tres` (with no `registryDirs`
+configured, there is nothing to validate and the command passes):
 
 | Rule ID | Severity | Flags |
 |---------|----------|-------|

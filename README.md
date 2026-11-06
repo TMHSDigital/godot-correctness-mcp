@@ -99,6 +99,7 @@ jobs:
         with: { node-version: 22 }
       - name: Lint GDScript (fails on error-severity findings)
         run: npx -y -p @tmhs/godot-correctness-mcp gdcorrect lint . --format json
+      # Only checks something once registryDirs is set in godot-correctness.config.json.
       - name: Validate registries
         run: npx -y -p @tmhs/godot-correctness-mcp gdcorrect validate-registries . --format json
 ```
