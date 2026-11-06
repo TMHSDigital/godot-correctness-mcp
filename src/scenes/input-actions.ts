@@ -1,3 +1,4 @@
+import { commentStart } from "../gdscript/comments.js";
 import { applySuppressions } from "../lint/suppressions.js";
 import type { Finding } from "../lint/types.js";
 import type { ResolvedConfig } from "../lint/config.js";
@@ -38,20 +39,6 @@ function splitArgs(args: string): { text: string; offset: number }[] {
   }
   out.push({ text: args.slice(start), offset: start });
   return out;
-}
-
-/** Index of a line's `#` comment start, ignoring `#` inside string literals. */
-function commentStart(line: string): number {
-  let inStr: string | null = null;
-  for (let i = 0; i < line.length; i++) {
-    const c = line[i];
-    if (inStr) {
-      if (c === "\\") i++;
-      else if (c === inStr) inStr = null;
-    } else if (c === '"' || c === "'") inStr = c;
-    else if (c === "#") return i;
-  }
-  return -1;
 }
 
 /** Whether a name is one of Godot's built-in `ui_*` actions. */

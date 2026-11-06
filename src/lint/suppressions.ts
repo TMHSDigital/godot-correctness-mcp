@@ -1,3 +1,4 @@
+import { commentStart } from "../gdscript/comments.js";
 import type { Finding } from "./types.js";
 
 /** Pseudo-rule id reported for suppression comments that silenced nothing. */
@@ -24,8 +25,13 @@ function parseDirectives(source: string): Directive[] {
   const lines = source.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {
     const text = lines[i]!;
-    const m = DIRECTIVE_RE.exec(text);
+    if (!text.includes("gdcorrect-ignore")) continue;
+    // Only real comments count: `var s = "# gdcorrect-ignore"` is a string.
+    const cut = commentStart(text);
+    if (cut === -1) continue;
+    const m = DIRECTIVE_RE.exec(text.slice(cut));
     if (!m) continue;
+    m.index += cut;
     const ids = m[2]
       ?.split(",")
       .map((s) => s.trim())

@@ -122,6 +122,10 @@ var hud := get_node("HUD")   # a comment-only directive applies to the next line
 - `# gdcorrect-ignore[rule-a, rule-b]` on a code line applies to that line; on a
   comment-only line it applies to the next line.
 - Omit the brackets (`# gdcorrect-ignore`) to silence every rule on that line.
+- A comment-only directive applies to the very next line, so keep it directly
+  above the code (no blank line in between). Findings sit on the first line of
+  a multi-line statement; put the directive there.
+- Only real comments count: the text inside a string literal is ignored.
 - `# gdcorrect-ignore-file[...]` applies to the whole file.
 - Directives also silence the checks that report findings in `.gd` files:
   `scene-node-path-missing` and `project-input-action-undefined`.

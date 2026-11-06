@@ -116,3 +116,34 @@ describe("suppressions and rules config across scene/project checks", () => {
     expect(await lint(src, { rules: { "untyped-declaration": { enabled: false } } })).toEqual([]);
   });
 });
+
+describe("suppression edge cases", () => {
+  it("directive text inside a string literal suppresses nothing", async () => {
+    expect(await lint('var a = "# gdcorrect-ignore"\n')).toEqual(["untyped-declaration@1:warning"]);
+    expect(await lint("var b = '# gdcorrect-ignore[untyped-declaration]'\n")).toEqual(["untyped-declaration@1:warning"]);
+  });
+
+  it("a real comment after a string containing # still works", async () => {
+    expect(await lint('var a = "#hash"  # gdcorrect-ignore[untyped-declaration]\n')).toEqual([]);
+  });
+
+  it("a comment-only directive does not skip a blank line", async () => {
+    const src = "# gdcorrect-ignore[untyped-declaration]\n\nvar a = 1\n";
+    expect(await lint(src)).toEqual(["unused-suppression@1:info", "untyped-declaration@3:warning"]);
+  });
+
+  it("empty brackets mean every rule", async () => {
+    expect(await lint("var a = 1  # gdcorrect-ignore[]\n")).toEqual([]);
+  });
+
+  it("CRLF sources report directive lines correctly", async () => {
+    const src = "extends Node\r\n# gdcorrect-ignore[await-misuse]\r\nvar a: int = 1\r\n";
+    expect(await lint(src)).toEqual(["unused-suppression@2:info"]);
+  });
+
+  it("a directive on a continuation line does not reach the statement's first line", async () => {
+    // Findings anchor at the statement start, so put directives there.
+    const src = "var a = [\n\t1,  # gdcorrect-ignore[untyped-declaration]\n]\n";
+    expect(await lint(src)).toEqual(["untyped-declaration@1:warning", "unused-suppression@2:info"]);
+  });
+});
