@@ -27,6 +27,13 @@ export default tseslint.config(
     },
   },
   {
+    // Plain Node scripts (TypeScript files get these from @types/node).
+    files: ["**/*.js", "**/*.mjs"],
+    languageOptions: {
+      globals: { process: "readonly", console: "readonly", Buffer: "readonly", URL: "readonly" },
+    },
+  },
+  {
     // Tests read loosely typed JSON payloads.
     files: ["test/**/*.ts"],
     rules: { "@typescript-eslint/no-explicit-any": "off" },

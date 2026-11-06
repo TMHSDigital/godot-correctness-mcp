@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -28,5 +29,24 @@ describe("skill resources (offline, in-memory)", () => {
     const text = (res.contents[0] as { text: string }).text;
     expect(text).toContain("validate_registries");
     expect(text).toContain("registryDirs");
+  });
+});
+
+describe("every skill resource", () => {
+  const toolNames = new Set(
+    (JSON.parse(readFileSync("mcp-tools.json", "utf-8")) as { name: string }[]).map((t) => t.name),
+  );
+
+  it.each(SKILLS.map((s) => s.name))("skill://%s reads as markdown with a heading", async (name) => {
+    const res = await client.readResource({ uri: `skill://${name}` });
+    const text = (res.contents[0] as { text: string }).text;
+    expect(text.trim().length).toBeGreaterThan(100);
+    expect(text.trimStart().startsWith("#")).toBe(true);
+  });
+
+  it.each(SKILLS.map((s) => s.name))("skill://%s only mentions tools that exist", async (name) => {
+    const text = (await client.readResource({ uri: `skill://${name}` })).contents[0] as { text: string };
+    const mentioned = [...text.text.matchAll(/`((?:api|lint|validate|project|server|list)_[a-z_]+)`/g)].map((m) => m[1]!);
+    for (const tool of mentioned) expect(toolNames, `${name} mentions ${tool}`).toContain(tool);
   });
 });

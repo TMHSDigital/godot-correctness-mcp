@@ -19,6 +19,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
+    "smoke:pack": "node scripts/pack-smoke.mjs",
     "typecheck": "tsc -p tsconfig.check.json",
     "lint": "eslint .",
     "validate:artifacts": "tsx scripts/validate-symbol-db.ts",

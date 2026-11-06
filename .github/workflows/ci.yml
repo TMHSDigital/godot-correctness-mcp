@@ -32,3 +32,5 @@ jobs:
       - name: Validate committed symbol DB artifacts (no Godot required)
         run: npm run validate:artifacts
       - run: npm test
+      - name: Smoke-test the packed npm artifact (bins, data/, skills/)
+        run: npm run smoke:pack
