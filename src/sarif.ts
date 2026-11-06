@@ -42,23 +42,48 @@ export function toSarif(
             })),
           },
         },
-        results: findings.map((f) => ({
-          ruleId: f.ruleId,
-          ruleIndex: ruleIndex.get(f.ruleId),
-          level: LEVEL[f.severity],
-          message: { text: f.suggestion ? `${f.message} ${f.suggestion}` : f.message },
-          locations: [
-            {
-              physicalLocation: {
-                artifactLocation: {
-                  uri: toPosix(relative(cwd, join(opts.projectRoot, f.file))),
-                  uriBaseId: "%SRCROOT%",
+        results: findings.map((f) => {
+          const artifactLocation = {
+            uri: toPosix(relative(cwd, join(opts.projectRoot, f.file))),
+            uriBaseId: "%SRCROOT%",
+          };
+          return {
+            ruleId: f.ruleId,
+            ruleIndex: ruleIndex.get(f.ruleId),
+            level: LEVEL[f.severity],
+            message: { text: f.suggestion ? `${f.message} ${f.suggestion}` : f.message },
+            locations: [
+              {
+                physicalLocation: {
+                  artifactLocation,
+                  region: { startLine: f.line, startColumn: f.col },
                 },
-                region: { startLine: f.line, startColumn: f.col },
               },
-            },
-          ],
-        })),
+            ],
+            // SARIF regions use 1-based columns with an exclusive end, like FixEdit.
+            ...(f.fix && {
+              fixes: [
+                {
+                  description: { text: f.fix.description },
+                  artifactChanges: [
+                    {
+                      artifactLocation,
+                      replacements: f.fix.edits.map((e) => ({
+                        deletedRegion: {
+                          startLine: e.startLine,
+                          startColumn: e.startCol,
+                          endLine: e.endLine,
+                          endColumn: e.endCol,
+                        },
+                        insertedContent: { text: e.replacement },
+                      })),
+                    },
+                  ],
+                },
+              ],
+            }),
+          };
+        }),
       },
     ],
   };

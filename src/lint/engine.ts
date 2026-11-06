@@ -9,7 +9,7 @@ import {
 import { SCENE_RULE_IDS } from "./catalog.js";
 import { DEFAULT_RULES } from "./rules/index.js";
 import { applySuppressions, UNUSED_SUPPRESSION_RULE } from "./suppressions.js";
-import type { Finding } from "./types.js";
+import type { Finding, Fix, RawFix } from "./types.js";
 
 /**
  * Lint one GDScript source string. `file` is used only for the reported path.
@@ -46,8 +46,39 @@ export async function lintSource(
   return findings;
 }
 
+/** Offsets of the first character of every line. */
+function lineStartOffsets(source: string): number[] {
+  const starts = [0];
+  for (let i = 0; i < source.length; i++) if (source[i] === "\n") starts.push(i + 1);
+  return starts;
+}
+
+/** 1-based line/col for a string offset (columns count UTF-16 code units, like the editor). */
+function positionOf(offset: number, lineStarts: number[]): { line: number; col: number } {
+  let lo = 0;
+  let hi = lineStarts.length - 1;
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >> 1;
+    if (lineStarts[mid]! <= offset) lo = mid;
+    else hi = mid - 1;
+  }
+  return { line: lo + 1, col: offset - lineStarts[lo]! + 1 };
+}
+
+function resolveFix(fix: RawFix, lineStarts: number[]): Fix {
+  return {
+    description: fix.description,
+    edits: fix.edits.map((e) => {
+      const s = positionOf(e.start, lineStarts);
+      const t = positionOf(e.end, lineStarts);
+      return { startLine: s.line, startCol: s.col, endLine: t.line, endCol: t.col, replacement: e.replacement };
+    }),
+  };
+}
+
 function runRules(file: string, root: Node, source: string, config: ResolvedConfig): Finding[] {
   const findings: Finding[] = [];
+  const lineStarts = lineStartOffsets(source);
   for (const rule of DEFAULT_RULES) {
     if (!isRuleEnabled(config, rule.id)) continue;
     const raws = rule.check({
@@ -59,7 +90,7 @@ function runRules(file: string, root: Node, source: string, config: ResolvedConf
     for (const raw of raws) {
       const severity = severityOverride(config, rule.id) ?? raw.severity ?? rule.defaultSeverity;
       const pos = raw.node.startPosition;
-      findings.push({
+      const finding: Finding = {
         file,
         line: pos.row + 1,
         col: pos.column + 1,
@@ -67,7 +98,9 @@ function runRules(file: string, root: Node, source: string, config: ResolvedConf
         severity,
         message: raw.message,
         suggestion: raw.suggestion,
-      });
+      };
+      if (raw.fix) finding.fix = resolveFix(raw.fix, lineStarts);
+      findings.push(finding);
     }
   }
   return findings;

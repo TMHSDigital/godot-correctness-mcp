@@ -1,6 +1,9 @@
 #!/usr/bin/env node
+import { readFileSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { applyBaseline, createBaseline, readBaseline, writeBaseline } from "./baseline.js";
 import { isMainModule } from "./entry.js";
+import { applyFixes } from "./lint/fixes.js";
 import { effectiveRules } from "./lint/catalog.js";
 import { loadConfig, type ResolvedConfig } from "./lint/config.js";
 import { lintProject } from "./lint/project.js";
@@ -113,6 +116,7 @@ interface CliArgs {
   /** --files (repeatable, comma-separated). */
   files: string[];
   changedSince?: string;
+  fix: boolean;
   help: boolean;
   version: boolean;
 }
@@ -132,12 +136,16 @@ const VALUE_FLAGS: Record<string, "format" | "baseline" | "writeBaseline" | "fai
 
 /** Parse argv strictly: unknown options, missing values and extra arguments are usage errors. */
 export function parseArgs(argv: string[]): CliArgs {
-  const args: CliArgs = { format: "json", failOn: "error", files: [], help: false, version: false };
+  const args: CliArgs = { format: "json", failOn: "error", files: [], fix: false, help: false, version: false };
   const positional: string[] = [];
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]!;
     if (a === "--help" || a === "-h") {
       args.help = true;
+      continue;
+    }
+    if (a === "--fix") {
+      args.fix = true;
       continue;
     }
     if (a === "--version" || a === "-v") {
@@ -195,6 +203,7 @@ Options:
       --files <a.gd,b.gd>           lint only: check just these files (repeatable)
       --changed-since <git-ref>     lint only: check files changed since the ref,
                                     plus uncommitted and untracked files
+      --fix                         lint only: apply machine-applicable fixes in place
   -h, --help                        Show this help
   -v, --version                     Print the version
 
@@ -219,6 +228,28 @@ function render(res: CommandResult, format: Format): string {
     case "json":
       return JSON.stringify(res.payload, null, 2);
   }
+}
+
+/** Apply every fixable finding in place, file by file. */
+function writeFixes(root: string, findings: Finding[]): { applied: number; files: number } {
+  const byFile = new Map<string, Finding[]>();
+  for (const f of findings) {
+    if (!f.fix) continue;
+    const list = byFile.get(f.file);
+    if (list) list.push(f);
+    else byFile.set(f.file, [f]);
+  }
+  let applied = 0;
+  let files = 0;
+  for (const [rel, fs] of byFile) {
+    const full = join(root, rel);
+    const r = applyFixes(readFileSync(full, "utf-8"), fs);
+    if (r.applied === 0) continue;
+    writeFileSync(full, r.source);
+    applied += r.applied;
+    files++;
+  }
+  return { applied, files };
 }
 
 /** `gdcorrect rules [projectPath]`: the rule catalogue, optionally with a project's effective config. */
@@ -298,6 +329,10 @@ export async function runCli(
     errOut("gdcorrect: use either --baseline or --write-baseline, not both.");
     return 2;
   }
+  if (parsed.fix && (command !== "lint" || writeTo)) {
+    errOut("gdcorrect: --fix only applies to the lint command (and not with --write-baseline).");
+    return 2;
+  }
   const narrowed = parsed.files.length > 0 || parsed.changedSince !== undefined;
   if (narrowed && command !== "lint") {
     // Scene and project checks span files, so a partial run would be misleading.
@@ -315,6 +350,11 @@ export async function runCli(
       if (parsed.changedSince !== undefined) only.push(...changedSince(root, parsed.changedSince));
     }
     let res = await runCommand(command, root, only);
+    if (parsed.fix) {
+      const fixed = writeFixes(root, res.findings);
+      errOut(`gdcorrect: applied ${fixed.applied} fix(es) in ${fixed.files} file(s).`);
+      if (fixed.applied > 0) res = await runCommand(command, root, only);
+    }
     if (writeTo) {
       const b = createBaseline(root, res.findings);
       writeBaseline(writeTo, b);

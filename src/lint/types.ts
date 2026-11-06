@@ -11,6 +11,30 @@ export interface Finding {
   severity: Severity;
   message: string;
   suggestion: string;
+  /** A machine-applicable fix, for findings with a deterministic rewrite. */
+  fix?: Fix;
+}
+
+/** One text replacement. Positions are 1-based; the end is exclusive. */
+export interface FixEdit {
+  startLine: number;
+  startCol: number;
+  endLine: number;
+  endCol: number;
+  replacement: string;
+}
+
+export interface Fix {
+  /** What applying the fix does, e.g. "Add @onready". */
+  description: string;
+  /** Non-overlapping edits, in document order. */
+  edits: FixEdit[];
+}
+
+/** A fix as a rule produces it: string offsets into the source (end exclusive). */
+export interface RawFix {
+  description: string;
+  edits: { start: number; end: number; replacement: string }[];
 }
 
 /** What a rule emits: a node to anchor at, a message, and a fix suggestion. */
@@ -25,6 +49,8 @@ export interface RawFinding {
    * config severity override still wins.
    */
   severity?: Severity;
+  /** Optional deterministic rewrite; only for rewrites that cannot change behaviour. */
+  fix?: RawFix;
 }
 
 export interface RuleContext {

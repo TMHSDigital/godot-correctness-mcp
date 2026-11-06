@@ -49,6 +49,10 @@ export const missingOnready: Rule = {
         node: vs,
         message: "Node-path member initialized without @onready; the child may not exist when the initializer runs.",
         suggestion: "Prefix the declaration with @onready so it resolves after the node enters the tree.",
+        fix: {
+          description: "Add @onready",
+          edits: [{ start: vs.startIndex, end: vs.startIndex, replacement: "@onready " }],
+        },
       });
     }
     return out;

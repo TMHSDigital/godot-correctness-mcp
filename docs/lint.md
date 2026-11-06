@@ -142,6 +142,12 @@ gdcorrect lint <projectPath> --fail-on warning  # also fail on warnings
 gdcorrect --help                              # every command, option, and exit code
 ```
 
+Findings with a deterministic rewrite carry a `fix` (`description` plus `edits`
+with 1-based `startLine`/`startCol`/`endLine`/`endCol`, end exclusive, and a
+`replacement`); SARIF output includes them as `fixes`, and `gdcorrect lint --fix`
+applies them in place. Today: `missing-onready` (adds `@onready`) and
+`stringly-nodepath` (a bare `get_node("A/B")` with a plain path becomes `$A/B`).
+
 JSON output for `lint` is a findings array (`file`, `line`, `col`, `ruleId`,
 `severity`, `message`, `suggestion`) plus `fileCount` and severity counts. With
 `--baseline`, the payload is `{ root, findings, count, baselined,
