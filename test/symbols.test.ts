@@ -195,7 +195,7 @@ describe("symbol kinds, formatters and diff statuses", () => {
       "static const virtual Node.f(int a = 1) -> int",
     );
     expect(formatMethod({ ...base, isVararg: true })).toBe("f(int a = 1, ...) -> int");
-    expect(formatMethod({ name: "g", args: [], isVararg: true })).toBe("g(...) -> void");
+    expect(formatMethod({ name: "g", ret: null, args: [], isVararg: true })).toBe("g(...) -> void");
   });
 
   it("formats properties, signals and utilities", () => {
@@ -204,7 +204,7 @@ describe("symbol kinds, formatters and diff statuses", () => {
     );
     expect(formatProperty({ name: "x", type: "float" })).toBe("float x");
     expect(formatSignal({ name: "hit", args: [{ name: "dmg", type: "int" }] }, "Node")).toBe("signal Node.hit(int dmg)");
-    expect(formatUtility({ name: "print", category: "general", args: [], isVararg: true })).toBe("print(...) -> void  # general");
+    expect(formatUtility({ name: "print", ret: null, category: "general", args: [], isVararg: true })).toBe("print(...) -> void  # general");
   });
 
   it("diffSymbol reports added and unchanged members", () => {
