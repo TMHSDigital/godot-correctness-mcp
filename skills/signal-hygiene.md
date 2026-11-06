@@ -43,4 +43,4 @@ func flash() -> void:
 ```
 
 Never `await` a plain value — `await` expects a signal or a coroutine
-(the `await-misuse` rule catches `await <literal>`). See [[typed-gdscript]].
+(the `await-misuse` rule catches `await <literal>`). See [typed-gdscript](skill://typed-gdscript).

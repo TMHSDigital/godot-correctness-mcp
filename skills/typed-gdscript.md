@@ -37,11 +37,17 @@ func _process(delta: float) -> void:
 The `missing-onready` rule flags a class-level node-path member without
 `@onready`; `get-node-in-process` flags per-frame lookups.
 
-## Prefer $ over string paths
+## Node references that survive renames
+
+`$UI/HPBar` is shorthand for `get_node("UI/HPBar")`: it is easier to read, but it
+breaks the same way when a node is renamed or moved (`scene-node-path-missing`
+reports literal paths that no longer exist in the scenes using the script).
+For references that survive edits, use a scene-unique name or an exported node:
 
 ```gdscript
-@onready var hp_bar := $UI/HPBar          # rename-safe editor reference
-# var hp_bar = get_node("UI/HPBar")       # stringly-nodepath: fragile
+@onready var hp_bar: ProgressBar = %HPBar   # "Access as Unique Name" in the editor
+@export var hp_bar_alt: ProgressBar         # assigned in the inspector, tracked on rename
+# var hp_bar = get_node("UI/HPBar")         # stringly-nodepath: fragile
 ```
 
-See [[signal-hygiene]] and [[data-driven-resources]].
+See [signal-hygiene](skill://signal-hygiene) and [data-driven-resources](skill://data-driven-resources).

@@ -50,3 +50,13 @@ describe("every skill resource", () => {
     for (const tool of mentioned) expect(toolNames, `${name} mentions ${tool}`).toContain(tool);
   });
 });
+
+describe("skill cross-links", () => {
+  it.each(SKILLS.map((s) => s.name))("skill://%s links only to skills that exist", async (name) => {
+    const text = ((await client.readResource({ uri: `skill://${name}` })).contents[0] as { text: string }).text;
+    expect(text).not.toMatch(/\[\[[^\]]+\]\]/);
+    for (const m of text.matchAll(/\]\(skill:\/\/([a-z0-9-]+)\)/g)) {
+      expect(SKILLS.map((s) => s.name)).toContain(m[1]);
+    }
+  });
+});

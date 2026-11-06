@@ -46,8 +46,11 @@ const ITEM_DIR := "res://resources/items"
 var _items: Dictionary[StringName, ItemData] = {}
 
 func _ready() -> void:
-	for file in DirAccess.get_files_at(ITEM_DIR):
-		if not file.ends_with(".tres"):
+	# ResourceLoader.list_directory (Godot 4.4+) also works in exported builds,
+	# where .tres files may be converted or remapped and DirAccess sees
+	# "*.tres.remap" instead.
+	for file in ResourceLoader.list_directory(ITEM_DIR):
+		if not (file.ends_with(".tres") or file.ends_with(".res")):
 			continue
 		var res := load(ITEM_DIR.path_join(file)) as ItemData
 		if res == null:
@@ -63,10 +66,10 @@ func get_item(id: StringName) -> ItemData:
 
 String path properties like `scene_path` above are invisible failures: a renamed
 or deleted `.tscn` only errors when something actually loads it. Configure the
-registry directory so the static validator checks every `.tres`:
+registry directory in `godot-correctness.config.json` so the static validator
+checks every `.tres` (the file is plain JSON, so no comments):
 
 ```json
-// godot-correctness.config.json
 {
   "registryDirs": ["resources/items"],
   "pathPropertyPatterns": ["*_path", "*_scene"]
@@ -75,4 +78,4 @@ registry directory so the static validator checks every `.tres`:
 
 Then `validate_registries` (or `gdcorrect validate-registries .`) confirms each
 `.tres` parses, its script resolves, and every resource-path property points at
-an existing file. See also [[signal-hygiene]] and [[typed-gdscript]].
+an existing file. See also [signal-hygiene](skill://signal-hygiene) and [typed-gdscript](skill://typed-gdscript).

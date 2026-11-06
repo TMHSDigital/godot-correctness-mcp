@@ -32,7 +32,7 @@ func spawn_from(item: ItemData) -> Node:
 ```
 
 Data-driven paths like `item.scene_path` are exactly what
-[[data-driven-resources]] and the `validate_registries` tool guard: a dangling
+[data-driven-resources](skill://data-driven-resources) and the `validate_registries` tool guard: a dangling
 `res://` path here is invisible until this line runs. Validate registries in CI
 so a bad path fails the build, not the player's session.
 
@@ -40,4 +40,4 @@ so a bad path fails the build, not the player's session.
 
 `preload` is resolved once at parse time regardless of where it appears, but keep
 `load()` calls out of `_process`/`_physics_process`; cache the `PackedScene` once.
-See [[typed-gdscript]].
+See [typed-gdscript](skill://typed-gdscript).
