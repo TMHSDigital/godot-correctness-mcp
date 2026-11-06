@@ -19,14 +19,15 @@
           "description": "Symbol name, e.g. 'Node', 'move_and_slide', or 'Node.get_child_count'"
         },
         "version": {
+          "description": "Limit to one version; omit to search all available versions",
           "type": "string",
           "enum": [
             "4.4",
             "4.5"
-          ],
-          "description": "Limit to one version; omit to search all available versions"
+          ]
         },
         "kind": {
+          "description": "Restrict results to one symbol kind",
           "type": "string",
           "enum": [
             "class",
@@ -40,14 +41,12 @@
             "utility_function",
             "singleton",
             "global_enum"
-          ],
-          "description": "Restrict results to one symbol kind"
+          ]
         }
       },
       "required": [
         "symbol"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -75,7 +74,6 @@
         "class",
         "version"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -91,22 +89,25 @@
           "description": "Class name (e.g. 'TileMap') or symbol (e.g. 'move_and_slide')"
         },
         "from": {
+          "description": "Base version (default 4.4)",
           "type": "string",
           "enum": [
             "4.4",
             "4.5"
-          ],
-          "description": "Base version (default 4.4)"
+          ]
         },
         "to": {
-          "$ref": "#/properties/from",
-          "description": "Target version (default 4.5)"
+          "description": "Target version (default 4.5)",
+          "type": "string",
+          "enum": [
+            "4.4",
+            "4.5"
+          ]
         }
       },
       "required": [
         "symbol"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -122,14 +123,13 @@
           "description": "Path to the .gd file (used for the reported location and config lookup)"
         },
         "source": {
-          "type": "string",
-          "description": "Inline GDScript source; if omitted, the file at 'path' is read"
+          "description": "Inline GDScript source; if omitted, the file at 'path' is read",
+          "type": "string"
         }
       },
       "required": [
         "path"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -145,15 +145,14 @@
           "description": "Path to the Godot project root"
         },
         "baseline": {
+          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts.",
           "type": "string",
-          "minLength": 1,
-          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts."
+          "minLength": 1
         }
       },
       "required": [
         "path"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -164,12 +163,11 @@
       "type": "object",
       "properties": {
         "path": {
+          "description": "Optional Godot project root to resolve its config",
           "type": "string",
-          "minLength": 1,
-          "description": "Optional Godot project root to resolve its config"
+          "minLength": 1
         }
       },
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -185,15 +183,14 @@
           "description": "Path to the Godot project root"
         },
         "baseline": {
+          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts.",
           "type": "string",
-          "minLength": 1,
-          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts."
+          "minLength": 1
         }
       },
       "required": [
         "path"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -209,15 +206,14 @@
           "description": "Path to the Godot project root"
         },
         "baseline": {
+          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts.",
           "type": "string",
-          "minLength": 1,
-          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts."
+          "minLength": 1
         }
       },
       "required": [
         "path"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -233,15 +229,14 @@
           "description": "Path to the Godot project root"
         },
         "baseline": {
+          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts.",
           "type": "string",
-          "minLength": 1,
-          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts."
+          "minLength": 1
         }
       },
       "required": [
         "path"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   },
@@ -257,15 +252,14 @@
           "description": "Path to the Godot project root"
         },
         "baseline": {
+          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts.",
           "type": "string",
-          "minLength": 1,
-          "description": "Optional gdcorrect baseline file (from 'gdcorrect <cmd> --write-baseline'); relative paths resolve against the project root. When set, only findings not in the baseline are returned, plus 'baselined' and 'staleBaselineEntries' counts."
+          "minLength": 1
         }
       },
       "required": [
         "path"
       ],
-      "additionalProperties": false,
       "$schema": "http://json-schema.org/draft-07/schema#"
     }
   }

@@ -36,7 +36,7 @@ export const configSchema = z
         for (const id of Object.keys(rules)) {
           if (!RULE_INFO.has(id)) {
             ctx.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               path: [id],
               message: `Unknown rule id "${id}". Known rules: ${[...RULE_INFO.keys()].join(", ")}.`,
             });
