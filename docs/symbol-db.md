@@ -34,7 +34,10 @@ network, or editor is ever required in CI or at server runtime.
 
 You need the pinned Godot binaries locally. This repo was built against the
 official `godotengine/godot-builds` **non-mono** (GDScript-only) win64 console
-builds. Acquire a version if you do not have it:
+builds; the examples below use those and Windows paths. On Linux or macOS use the
+matching `linux.x86_64` / `macos.universal` archive and its binary path instead
+(the generator only needs `--dump-extension-api`, which every desktop build
+supports). Acquire a version if you do not have it:
 
 ```bash
 gh release download 4.4.1-stable --repo godotengine/godot-builds \
@@ -75,3 +78,17 @@ To move a minor line to a newer patch (e.g. 4.5.2 -> 4.5.3): download the new
 build, regenerate with the new `--tag`/`--archive-sha256`, update the table
 above, and commit the new `.gz`. Bump `SCHEMA_VERSION` in `src/symbols/schema.ts`
 only when the DB shape itself changes.
+
+## Adding a new minor version
+
+To add a new minor line (e.g. 4.6):
+
+1. Download the build and regenerate with `--label 4.6` and its `--tag` /
+   `--archive-name` / `--archive-sha256`, as above.
+2. Add `"4.6"` to `PINNED_GODOT_VERSIONS` in `src/capabilities.ts`. Without this,
+   `validate:artifacts` skips the new DB and no tool exposes it. Tool version
+   enums, `api_diff` defaults, and `removed-api-usage` targets all derive from
+   this list.
+3. Run `npm run generate:tools` (the tool schemas list the versions),
+   `npm run validate:artifacts`, and `npm test`.
+4. Add the version to the provenance table above and to the README.

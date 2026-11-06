@@ -38,7 +38,7 @@ function parseArgs(argv: string[]): Args {
   const godot = get("--godot");
   const label = get("--label");
   if (!godot || !label) {
-    throw new Error("Required: --godot <path> --label <4.4|4.5>");
+    throw new Error("Required: --godot <path> --label <minor version, e.g. 4.5>");
   }
   return {
     godot,

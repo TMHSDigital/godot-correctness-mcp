@@ -41,7 +41,8 @@ Use [Conventional Commits](https://www.conventionalcommits.org/):
 
 ### Scene, project, and registry checks
 
-- Add the check in `src/scenes/validate.ts`, a fixture under `test/fixtures/scene-project/`, and the rule id in `docs/scenes.md`
+- Add the check next to related ones in `src/scenes/` (`scene-graph.ts`, `validate.ts`, `node-paths.ts`, `input-actions.ts`, `uids.ts`); the validate-scenes set is wired once in `validateSceneFiles` (`src/scenes/report.ts`)
+- Register the rule id in `SCENE_RULES` (`src/lint/catalog.ts`), add a test, and document it in `docs/scenes.md`
 
 ### Tools
 

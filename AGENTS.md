@@ -77,7 +77,7 @@ Keeps repository labels in sync.
 
 ## Code conventions
 
-- No hardcoded credentials -- CI scans for password/token/api_key patterns.
+- No hardcoded credentials. Nothing in CI scans for them, so review for secrets before committing (`gitleaks` works locally).
 - Conventional commits; bump the version deliberately (CI tags and publishes it).
 - `mcp-tools.json` is generated: run `npm run generate:tools` after changing a tool. `test/tools.test.ts` fails when it drifts from the registered tools.
 
@@ -92,9 +92,10 @@ Keeps repository labels in sync.
 
 ### New scene / project / registry check
 
-1. Add the check to the relevant function in `src/scenes/validate.ts`
-2. Extend `test/fixtures/scene-project/` and `test/scenes.test.ts`
-3. Document the rule id in `docs/scenes.md`; use the `feat:` commit prefix
+1. Put the check with its neighbours: `.tscn` structure in `src/scenes/scene-graph.ts` or `src/scenes/validate.ts`, script node paths in `src/scenes/node-paths.ts`, input actions in `src/scenes/input-actions.ts`, uid handling in `src/scenes/uids.ts`. The validate-scenes set is assembled once, in `validateSceneFiles` (`src/scenes/report.ts`), which the CLI, the MCP tool, and the report all call.
+2. Add the rule id, default severity, and description to `SCENE_RULES` in `src/lint/catalog.ts` (this makes it configurable, valid in `rules`, listed by `list_rules`, and described in SARIF)
+3. Extend `test/fixtures/scene-project/` or add a focused test (`test/scenes.test.ts`, `test/scene-graph.test.ts`, `test/scenes-edge.test.ts`)
+4. Document the rule id in `docs/scenes.md`; use the `feat:` commit prefix
 
 ### New tool
 
