@@ -334,3 +334,50 @@ describe("project-input-action-undefined", () => {
     expect(validateProjectConfig(root)).toEqual([]);
   });
 });
+
+describe("validate_registries branches", () => {
+  const cfg = (extra: object = {}) => JSON.stringify({ registryDirs: ["data"], ...extra });
+  const ids = (root: string) => validateRegistries(root).findings.map((f) => `${f.file}@${f.line}:${f.ruleId}`);
+
+  it("reports files that are not Godot text resources", () => {
+    const root = project("reg-parse", {
+      "godot-correctness.config.json": cfg(),
+      "data/scene.tres": '[gd_scene format=3]\n\n[node name="R" type="Node"]\n',
+      "data/garbage.tres": "not a resource at all\n",
+    });
+    expect(ids(root).sort()).toEqual([
+      "data/garbage.tres@1:registry-parse-error",
+      "data/scene.tres@1:registry-parse-error",
+    ]);
+  });
+
+  it("checks resource-path properties inside sub_resource sections", () => {
+    const root = project("reg-sub", {
+      "godot-correctness.config.json": cfg(),
+      "data/item.tres":
+        '[gd_resource type="Resource" format=3]\n\n[sub_resource type="Resource" id="S"]\nicon_path = "res://gone.png"\n\n' +
+        '[resource]\nsub = SubResource("S")\n',
+    });
+    expect(ids(root)).toEqual(["data/item.tres@4:registry-dangling-path"]);
+  });
+
+  it("pathPropertyPatterns decides which property names are treated as paths", () => {
+    const files = {
+      "data/item.tres": '[gd_resource type="Resource" format=3]\n\n[resource]\nportrait = "art/gone_dir/face"\n',
+    };
+    // "portrait" matches no default pattern and has no resource extension.
+    expect(ids(project("reg-pattern-default", { ...files, "godot-correctness.config.json": cfg() }))).toEqual([]);
+    expect(
+      ids(project("reg-pattern-custom", { ...files, "godot-correctness.config.json": cfg({ pathPropertyPatterns: ["portrait"] }) })),
+    ).toEqual(["data/item.tres@4:registry-dangling-path"]);
+  });
+
+  it("skips excluded registry subfolders", () => {
+    const root = project("reg-exclude", {
+      "godot-correctness.config.json": cfg({ exclude: ["data/legacy/**"] }),
+      "data/legacy/old.tres": "garbage\n",
+      "data/ok.tres": '[gd_resource type="Resource" format=3]\n\n[resource]\n',
+    });
+    expect(ids(root)).toEqual([]);
+  });
+});
