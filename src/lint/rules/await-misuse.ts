@@ -12,6 +12,7 @@ const LITERALS = new Set([
   "false",
   "array",
   "dictionary",
+  "null",
 ]);
 
 /** Flags `await` applied to a literal value. Conservative: literals only. */
