@@ -6,7 +6,12 @@ import {
   classSummary,
   diffClass,
   diffSymbol,
+  formatMethod,
+  formatProperty,
+  formatSignal,
+  formatUtility,
   lookupSymbol,
+  SYMBOL_KINDS,
 } from "../src/symbols/lookup.js";
 import { parseSymbolDb, type SymbolDb } from "../src/symbols/schema.js";
 
@@ -162,5 +167,63 @@ describe("lookup edge cases", () => {
 
   it("does not throw on degenerate queries", () => {
     for (const q of ["", "Node.", ".velocity", "."]) expect(() => lookupSymbol(db45, q)).not.toThrow();
+  });
+});
+
+describe("symbol kinds, formatters and diff statuses", () => {
+  it("returns every symbol kind", () => {
+    expect(lookupSymbol(db45, "Vector2.length").matches[0]).toMatchObject({ kind: "builtin_method", owner: "Vector2" });
+    expect(lookupSymbol(db45, "Vector2").matches.map((m) => m.kind)).toContain("builtin_class");
+    expect(lookupSymbol(db45, "lerp").matches[0]).toMatchObject({ kind: "utility_function" });
+    expect(lookupSymbol(db45, "Engine").matches[0]).toMatchObject({ kind: "singleton" });
+    expect(lookupSymbol(db45, "Side").matches[0]).toMatchObject({ kind: "global_enum" });
+    expect(lookupSymbol(db45, "characterbody2d.VELOCITY").matches).toEqual([
+      expect.objectContaining({ kind: "property", owner: "CharacterBody2D", name: "velocity" }),
+    ]);
+  });
+
+  it("filters a shared name by kind", () => {
+    const all = lookupSymbol(db45, "Engine").matches.map((m) => m.kind);
+    expect(lookupSymbol(db45, "Engine", { kind: "singleton" }).matches.map((m) => m.kind)).toEqual(["singleton"]);
+    expect(all.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("formats methods with flags, defaults and varargs", () => {
+    const base = { name: "f", ret: "int", args: [{ name: "a", type: "int", default: "1" }] };
+    expect(formatMethod(base)).toBe("f(int a = 1) -> int");
+    expect(formatMethod({ ...base, isStatic: true, isConst: true, isVirtual: true }, "Node")).toBe(
+      "static const virtual Node.f(int a = 1) -> int",
+    );
+    expect(formatMethod({ ...base, isVararg: true })).toBe("f(int a = 1, ...) -> int");
+    expect(formatMethod({ name: "g", args: [], isVararg: true })).toBe("g(...) -> void");
+  });
+
+  it("formats properties, signals and utilities", () => {
+    expect(formatProperty({ name: "velocity", type: "Vector2", getter: "get_v", setter: "set_v" }, "CB")).toBe(
+      "Vector2 CB.velocity [get=get_v set=set_v]",
+    );
+    expect(formatProperty({ name: "x", type: "float" })).toBe("float x");
+    expect(formatSignal({ name: "hit", args: [{ name: "dmg", type: "int" }] }, "Node")).toBe("signal Node.hit(int dmg)");
+    expect(formatUtility({ name: "print", category: "general", args: [], isVararg: true })).toBe("print(...) -> void  # general");
+  });
+
+  it("diffSymbol reports added and unchanged members", () => {
+    const added = diffSymbol(db44, db45, "get_platform_velocity").entries;
+    expect(added).toEqual([expect.objectContaining({ status: "added", fromSignature: null })]);
+    const same = diffSymbol(db44, db45, "is_on_floor").entries;
+    expect(same).toEqual([expect.objectContaining({ status: "unchanged" })]);
+  });
+
+  it("diffClass on identical and removed classes", () => {
+    expect(diffClass(db45, db45, "Node").identical).toBe(true);
+    const gone = diffClass(db45, db44, "SkeletonModifier3D");
+    expect(gone.presence).toMatchObject({ inFrom: true, inTo: false });
+    expect(gone.identical).toBe(false);
+  });
+
+  it("lists every kind in SYMBOL_KINDS", () => {
+    expect([...SYMBOL_KINDS].sort()).toEqual(
+      ["builtin_class", "builtin_method", "class", "constant", "enum", "global_enum", "method", "property", "signal", "singleton", "utility_function"],
+    );
   });
 });
