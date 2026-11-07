@@ -25,7 +25,7 @@ export function changedSince(root: string, ref: string): string[] {
   const git = (...args: string[]): string[] => {
     try {
       return execFileSync("git", ["-C", root, ...args], { encoding: "utf-8", stdio: ["ignore", "pipe", "pipe"] })
-        .split(/\r?\n/)
+        .split("\0")
         .filter(Boolean);
     } catch (err) {
       const stderr = (err as { stderr?: Buffer | string }).stderr?.toString().trim();
@@ -33,8 +33,8 @@ export function changedSince(root: string, ref: string): string[] {
     }
   };
   // --relative: paths relative to (and limited to) root when it is a subdirectory.
-  const changed = git("diff", "--name-only", "--relative", "--diff-filter=d", ref, "--");
-  const untracked = git("ls-files", "--others", "--exclude-standard");
+  const changed = git("diff", "-z", "--name-only", "--relative", "--diff-filter=d", ref, "--");
+  const untracked = git("ls-files", "-z", "--others", "--exclude-standard");
   // git always prints forward-slash paths.
   return [...new Set([...changed, ...untracked])];
 }
