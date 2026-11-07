@@ -59,6 +59,29 @@ describe("removed-api-usage (4.4 -> 4.5)", () => {
     ]);
   });
 
+  it("does not count comments in call arguments or override parameters", async () => {
+    // A multi-line call with interleaved comments is still a 6-argument call.
+    const call =
+      "extends TextServerExtension\n\n" +
+      "func f() -> void:\n" +
+      "\t_shaped_text_draw(1, # one\n" +
+      "\t\t2, # two\n" +
+      "\t\t3, 4, 5, 6)\n";
+    expect(await hits(call)).toEqual([
+      "4:2 TextServerExtension._shaped_text_draw() takes 7 argument(s) in Godot 4.5, but is called with 6.",
+    ]);
+
+    // An override with a comment inside the parameter list still declares 6 parameters.
+    const override =
+      "extends TextServerExtension\n\n" +
+      "func _font_draw_glyph(a, b, c, d, # the new one?\n" +
+      "\t\te, f) -> void:\n" +
+      "\tpass\n";
+    expect(await hits(override)).toEqual([
+      "3:6 _font_draw_glyph() overrides TextServerExtension._font_draw_glyph, which takes 7 parameter(s) in Godot 4.5; this override declares 6.",
+    ]);
+  });
+
   it("does not flag virtuals that moved to a parent class", async () => {
     // 4.5 moved these OpenXR virtuals up to OpenXRExtensionWrapper; overrides still work.
     const src = "extends OpenXRExtensionWrapperExtension\n\nfunc _on_process() -> void:\n\tpass\n";
