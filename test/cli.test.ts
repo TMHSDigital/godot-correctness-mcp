@@ -233,7 +233,7 @@ describe("--files and --changed-since", () => {
 
   it("--changed-since lints committed, uncommitted and untracked changes since a ref", async () => {
     const { execFileSync } = await import("node:child_process");
-    const root = project("changed", { "old.gd": "var o = 1\n", "kept.gd": "var k = 1\n" });
+    const root = project("changed", { "jogador_é.gd": "var o = 1\n", "kept.gd": "var k = 1\n" });
     const git = (...a: string[]) => execFileSync("git", ["-C", root, ...a], { stdio: "ignore" });
     try {
       git("init", "-q");
@@ -245,11 +245,11 @@ describe("--files and --changed-since", () => {
     writeFileSync(join(root, "committed.gd"), "var c = 1\n");
     git("add", "committed.gd");
     git("-c", "user.email=t@t", "-c", "user.name=t", "commit", "-qm", "next");
-    writeFileSync(join(root, "old.gd"), "var o = 2\n"); // uncommitted change
-    writeFileSync(join(root, "new.gd"), "var n = 1\n"); // untracked
+    writeFileSync(join(root, "jogador_é.gd"), "var o = 2\n"); // uncommitted change
+    writeFileSync(join(root, "玩家.gd"), "var n = 1\n"); // untracked
     const r = await cli("lint", root, "--changed-since", "HEAD~1");
     expect(r.code).toBe(0);
-    expect(files(r.out).sort()).toEqual(["committed.gd", "new.gd", "old.gd"]);
+    expect(files(r.out).sort()).toEqual(["committed.gd", "jogador_é.gd", "玩家.gd"]);
     expect((await cli("lint", root, "--changed-since", "--bad")).code).toBe(2);
     expect((await cli("lint", root, "--changed-since", "no-such-ref")).code).toBe(2);
   });
