@@ -8,7 +8,8 @@ import { effectiveRules } from "./lint/catalog.js";
 import { loadConfig, type ResolvedConfig } from "./lint/config.js";
 import { lintProject } from "./lint/project.js";
 import type { Finding } from "./lint/types.js";
-import { changedSince, toProjectPaths } from "./project/changed.js";
+import { changedSince, resolveProjectPaths } from "./project/changed.js";
+import { scriptFiles } from "./project/files.js";
 import { requireDir } from "./project/walk.js";
 import { toSarif } from "./sarif.js";
 import { projectReport, reportFindings, validateSceneFiles } from "./scenes/report.js";
@@ -200,7 +201,9 @@ Options:
       --write-baseline <file>       Record current findings as the baseline, exit 0
       --fail-on <${FAIL_ON.join("|")}>
                                     Lowest severity that fails the run (default: error)
-      --files <a.gd,b.gd>           lint only: check just these files (repeatable)
+      --files <a.gd,b.gd>           lint only: check just these files (repeatable);
+                                    paths resolve against the current directory
+                                    or the project root
       --changed-since <git-ref>     lint only: check files changed since the ref,
                                     plus uncommitted and untracked files
       --fix                         lint only: apply machine-applicable fixes in place
@@ -346,7 +349,24 @@ export async function runCli(
   try {
     let only: string[] | undefined;
     if (narrowed) {
-      only = toProjectPaths(root, parsed.files);
+      if (parsed.files.length > 0) {
+        const resolved = resolveProjectPaths(root, parsed.files);
+        for (const d of resolved.dropped) errOut(`gdcorrect: ignoring --files '${d.path}': ${d.reason}.`);
+        const included = new Set(scriptFiles(root, loadConfig(root)).map((f) => f.rel));
+        for (const k of resolved.kept) {
+          if (included.has(k.rel)) continue;
+          const why = k.rel.endsWith(".gd") ? "excluded by the include/exclude config" : "not a .gd script";
+          errOut(`gdcorrect: ignoring --files '${k.path}': ${why}.`);
+        }
+        const matched = resolved.kept.filter((k) => included.has(k.rel));
+        if (matched.length === 0) {
+          errOut("gdcorrect: none of the --files paths match an included script.");
+          return 2;
+        }
+        only = matched.map((k) => k.rel);
+      } else {
+        only = [];
+      }
       if (parsed.changedSince !== undefined) only.push(...changedSince(root, parsed.changedSince));
     }
     let res = await runCommand(command, root, only);

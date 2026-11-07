@@ -81,7 +81,7 @@ resources, signal hygiene, typed GDScript, preload vs load).
 | `--fail-on error\|warning\|info\|none` | Lowest severity that fails the run (default `error`). |
 | `--baseline <file>` / `--write-baseline <file>` | Report only new findings / record the current ones (see below). |
 | `--fix` | `lint` only: apply machine-applicable fixes in place (`missing-onready` adds `@onready`; `stringly-nodepath` turns a plain `get_node("A/B")` into `$A/B`), then report what remains. |
-| `--files a.gd,b.gd` / `--changed-since <git-ref>` | `lint` only: check just these files, or files changed since a ref (plus uncommitted and untracked ones). Handy for pre-commit hooks and PR CI. |
+| `--files a.gd,b.gd` / `--changed-since <git-ref>` | `lint` only: check just these files, or files changed since a ref (plus uncommitted and untracked ones). Handy for pre-commit hooks and PR CI. `--files` paths resolve against the current directory or the project root; paths that match no included script are reported on stderr, and a run where none match is a usage error (exit 2). |
 | `-h`, `--help` / `-v`, `--version` | Help / package version. |
 
 Options also accept `--flag=value`. Unknown options, missing values, and extra
