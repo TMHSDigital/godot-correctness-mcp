@@ -1,5 +1,5 @@
 {
-  "$comment": "Copy to 'godot-correctness.config.json' at your project root. All fields are optional; defaults apply when omitted or when the file is absent.",
+  "$comment": "Copy to 'godot-correctness.config.json' at your project root. All fields are optional; defaults apply when omitted or when the file is absent. List your .tres registry directories in 'registryDirs' (e.g. [\"resources/registries\"]) to enable validate-registries.",
   "include": ["**/*.gd"],
   "exclude": ["**/.godot/**", "**/addons/**"],
   "rules": {
@@ -8,6 +8,6 @@
     "float-grid-equality": { "enabled": false },
     "connect-without-disconnect": { "severity": "warning" }
   },
-  "registryDirs": ["resources/registries"],
+  "registryDirs": [],
   "pathPropertyPatterns": ["*_path", "*_scene", "*_texture", "*_resource"]
 }
