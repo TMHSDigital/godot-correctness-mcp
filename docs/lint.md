@@ -38,7 +38,7 @@ defaults apply when the file is absent. See
     "untyped-declaration": { "severity": "info" },
     "float-grid-equality": { "enabled": false }
   },
-  "registryDirs": ["resources/registries"],
+  "registryDirs": [],
   "pathPropertyPatterns": ["*_path", "*_scene"]
 }
 ```
@@ -61,7 +61,7 @@ defaults apply when the file is absent. See
   rules here and the `scene-*`, `project-*`, and `registry-*` checks in
   [scenes.md](scenes.md).
 - `rules.<id>.options`: per-rule options (currently read by `removed-api-usage`).
-- `registryDirs`, `pathPropertyPatterns`: used by the registry validator (see [scenes.md](scenes.md)).
+- `registryDirs`, `pathPropertyPatterns`: list your `.tres` registry directories in `registryDirs` to enable the registry validator (see [scenes.md](scenes.md)).
 
 Unknown top-level keys (for example a typo like `exlude`), unknown rule ids in
 `rules`, and unknown keys inside a rule entry (for example `enable` or
