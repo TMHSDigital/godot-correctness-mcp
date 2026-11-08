@@ -3,7 +3,7 @@
 **Offline static correctness MCP server for Godot 4.x GDScript projects**
 
 ![License: CC-BY-NC-ND-4.0](https://img.shields.io/badge/license-CC--BY--NC--ND--4.0-green)
-![Version](https://img.shields.io/badge/version-0.1.2-blue)
+![Version](https://img.shields.io/badge/version-0.2.0-blue)
 
 ---
 
@@ -54,7 +54,7 @@ As an MCP server (Claude Desktop / Cursor `mcpServers` config):
 As a CLI:
 
 ```bash
-npx -y -p @tmhs/godot-correctness-mcp gdcorrect lint . --format json
+npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect lint . --format json
 ```
 
 ## MCP surface
@@ -98,10 +98,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: Lint GDScript (fails on error-severity findings)
-        run: npx -y -p @tmhs/godot-correctness-mcp gdcorrect lint . --format json
+        run: npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect lint . --format json
       # Only checks something once registryDirs is set in godot-correctness.config.json.
       - name: Validate registries
-        run: npx -y -p @tmhs/godot-correctness-mcp gdcorrect validate-registries . --format json
+        run: npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect validate-registries . --format json
 ```
 
 **Adopting the gate on an existing project:** record today's findings once and
@@ -128,7 +128,7 @@ To show findings as pull-request annotations, upload SARIF to code scanning
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - name: gdcorrect (SARIF)
-        run: npx -y -p @tmhs/godot-correctness-mcp gdcorrect report . --format sarif > gdcorrect.sarif
+        run: npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect report . --format sarif > gdcorrect.sarif
         continue-on-error: true   # let the upload step run; code scanning gates the PR
       - uses: github/codeql-action/upload-sarif@v3
         with: { sarif_file: gdcorrect.sarif }

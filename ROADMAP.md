@@ -17,16 +17,20 @@
 - [x] CI/CD workflows and npm trusted publishing
 - [x] GitHub Pages site
 
-### v0.2.0 -- Adoption and depth
+### v0.2.0 -- Adoption and depth (shipped)
 
-- [ ] CI adoption: inline suppressions, SARIF output, baseline files
-- [ ] `uid://` reference resolution
-- [ ] Deeper scene checks: SubResource ids, node parents, `[connection]` targets
-- [ ] Input action cross-check against `project.godot`
+- [x] CI adoption: inline suppressions, SARIF output, baseline files, `--fail-on`, `--changed-since`
+- [x] `uid://` reference resolution
+- [x] Deeper scene checks: SubResource ids, node parents, `[connection]` targets
+- [x] Input action cross-check against `project.godot`
+- [x] Removed/changed API lint rule driven by the symbol DB (target version read from `project.godot`)
+- [x] Node-path validation against owning scenes
+- [x] Machine-applicable fixes (`--fix`, SARIF `fixes`)
+
+### Next
+
 - [ ] `signal-callback-arity` lint rule (see BACKLOG.md)
 
 ### v1.0.0 -- Stable
 
-- [ ] Removed/changed API lint rule driven by the symbol DB
-- [ ] Node-path validation against owning scenes
 - [ ] Stable, documented JSON output contract for tools and CLI

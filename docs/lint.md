@@ -162,7 +162,7 @@ or tool error.
 ### GitHub Actions
 
 ```yaml
-- run: npx -y -p @tmhs/godot-correctness-mcp gdcorrect lint . --format json
+- run: npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect lint . --format json
 ```
 
 The step fails the job (exit 1) when any `error`-severity finding is present.
