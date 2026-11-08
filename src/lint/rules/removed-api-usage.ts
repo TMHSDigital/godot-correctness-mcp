@@ -51,7 +51,9 @@ function arity(m: Method): [number, number] {
 }
 
 function argCount(call: Node): number {
-  return call.childForFieldName("arguments")?.namedChildCount ?? call.namedChild(1)?.namedChildCount ?? 0;
+  const args = call.childForFieldName("arguments") ?? call.namedChild(1);
+  // Comments are named tree-sitter nodes but not arguments.
+  return args ? args.namedChildren.filter((c) => c.type !== "comment").length : 0;
 }
 
 /** Map typed variable/parameter names to their declared built-in class. */
@@ -164,7 +166,8 @@ export const removedApiUsage: Rule = {
         const before = membersOf(oldDb, base).get(name);
         if (!before?.method?.isVirtual) continue;
         const after = membersOf(newDb, base).get(name);
-        const params = fn.childForFieldName("parameters")?.namedChildCount ?? 0;
+        // Comments are named tree-sitter nodes but not parameters.
+        const params = (fn.childForFieldName("parameters")?.namedChildren ?? []).filter((c) => c.type !== "comment").length;
         if (!after?.method) {
           out.push({ node: nameNode,
             message: `${name}() overrides ${before.owner}.${name}, a virtual removed in Godot ${target}; the engine will no longer call it.`,
