@@ -359,7 +359,8 @@ export async function runCli(
           errOut(`gdcorrect: ignoring --files '${k.path}': ${why}.`);
         }
         const matched = resolved.kept.filter((k) => included.has(k.rel));
-        if (matched.length === 0) {
+        // With --changed-since the changed files can still give the run something to lint.
+        if (matched.length === 0 && parsed.changedSince === undefined) {
           errOut("gdcorrect: none of the --files paths match an included script.");
           return 2;
         }

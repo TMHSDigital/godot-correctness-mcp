@@ -1,6 +1,5 @@
 import { execFileSync } from "node:child_process";
 import { existsSync, realpathSync } from "node:fs";
-
 import { isAbsolute, relative, resolve } from "node:path";
 import { toPosix } from "./walk.js";
 
@@ -41,10 +40,14 @@ export function resolveProjectPaths(root: string, paths: string[]): { kept: Kept
       dropped.push({ path: p, reason: existsSync(cwdAbs) || existsSync(rootAbs) ? "outside the project root" : "does not exist" });
       continue;
     }
-    const rel = toPosix(relative(realRoot, toReal(abs) ?? abs));
-    if (rel && !rel.startsWith("../") && rel !== ".." && !isAbsolute(rel) && !kept.some((k) => k.rel === rel)) {
-      kept.push({ rel, path: p });
+    const real = toReal(abs) ?? abs;
+    // A symlink inside the root can resolve outside it.
+    if (!isInside(realRoot, real)) {
+      dropped.push({ path: p, reason: "outside the project root" });
+      continue;
     }
+    const rel = toPosix(relative(realRoot, real));
+    if (!kept.some((k) => k.rel === rel)) kept.push({ rel, path: p });
   }
   return { kept, dropped };
 }

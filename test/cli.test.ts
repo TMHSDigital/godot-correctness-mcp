@@ -302,6 +302,11 @@ describe("--files and --changed-since", () => {
     const r = await cli("lint", root, "--changed-since", "HEAD~1");
     expect(r.code).toBe(0);
     expect(files(r.out).sort()).toEqual(["committed.gd", "jogador_é.gd", "玩家.gd"]);
+    // An unmatched --files path is warned about, but the changed files still run.
+    const both = await cli("lint", root, "--files", "missing.gd", "--changed-since", "HEAD~1");
+    expect(both.err).toContain("missing.gd");
+    expect(both.code).toBe(0);
+    expect(files(both.out).sort()).toEqual(["committed.gd", "jogador_é.gd", "玩家.gd"]);
     expect((await cli("lint", root, "--changed-since", "--bad")).code).toBe(2);
     expect((await cli("lint", root, "--changed-since", "no-such-ref")).code).toBe(2);
   });

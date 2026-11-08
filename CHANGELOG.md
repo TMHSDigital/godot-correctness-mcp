@@ -21,6 +21,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - `removed-api-usage` no longer counts comments as call arguments or override parameters, so multi-line calls and overrides with interleaved comments get the correct arity (#108)
 - `--changed-since` includes tracked and untracked paths containing non-ASCII characters, quotes, tabs, or newlines (#99)
+- `gdcorrect lint --files` reports each path that matches no included script (missing, outside the project root, excluded, or not a `.gd` file) on stderr, resolves paths against the project root as well as the current directory, and matches on-disk casing. **Behavior change:** when none of the `--files` paths match (and `--changed-since` is not given), the run exits 2 instead of passing, so a pre-commit hook that passes every staged file should filter to `*.gd` first (#98)
+- The example config sets `registryDirs` to `[]`, so copying it into a fresh project no longer reports a missing `resources/registries` (#114)
 - `gdcorrect` exits 2 for a nonexistent project directory instead of reporting a clean run
 - Added `THIRD_PARTY_NOTICES.md` (shipped in the npm package) with the MIT notices for the bundled tree-sitter-gdscript grammar and Godot API data (#26)
 
