@@ -216,13 +216,65 @@ describe("--files and --changed-since", () => {
     ).toEqual(["b.gd", "c/d.gd"]);
   });
 
-  it("still applies include/exclude to --files", async () => {
+  it("still applies include/exclude to --files, warning when nothing is left", async () => {
     const root = project("files-exclude", {
       "godot-correctness.config.json": JSON.stringify({ exclude: ["vendor/**"] }),
       "vendor/v.gd": "var v = 1\n",
       "a.gd": "var a = 1\n",
     });
-    expect(files((await cli("lint", root, "--files", join(root, "vendor/v.gd"))).out)).toEqual([]);
+    const excluded = await cli("lint", root, "--files", join(root, "vendor/v.gd"));
+    expect(excluded.out).toBe("");
+    expect(excluded.err).toContain(join(root, "vendor/v.gd"));
+    expect(excluded.err).toContain("excluded");
+    expect(excluded.code).toBe(2);
+  });
+
+  it("warns on --files paths that match nothing and exits 2 when none match", async () => {
+    const root = project("files-dropped", {
+      "godot-correctness.config.json": JSON.stringify({ exclude: ["vendor/**"] }),
+      "a.gd": "var a = 1\n",
+      "vendor/v.gd": "var v = 1\n",
+      "note.txt": "x\n",
+    });
+    // A missing path is named with its reason; the good file is still linted.
+    const mixed = await cli("lint", root, "--files", "missing.gd", "--files", join(root, "a.gd"));
+    expect(mixed.err).toContain("missing.gd");
+    expect(mixed.err).toContain("does not exist");
+    expect(files(mixed.out)).toEqual(["a.gd"]);
+    expect(mixed.code).toBe(0);
+
+    // A path outside the project root is ignored with a warning.
+    writeFileSync(join(dirname(root), "outside.gd"), "var o = 1\n");
+    const outside = await cli("lint", root, "--files", join(root, "..", "outside.gd"));
+    expect(outside.err).toContain("outside.gd");
+    expect(outside.err).toContain("outside the project root");
+
+    // An excluded script is named as excluded, and matching nothing is a usage error.
+    const excluded = await cli("lint", root, "--files", join(root, "vendor/v.gd"));
+    expect(excluded.err).toContain(join(root, "vendor/v.gd"));
+    expect(excluded.err).toContain("excluded");
+    expect(excluded.code).toBe(2);
+
+    // A non-script file is named as not a .gd script.
+    const notScript = await cli("lint", root, "--files", join(root, "note.txt"));
+    expect(notScript.err).toContain("not a .gd script");
+    expect(notScript.code).toBe(2);
+
+    // No matching paths at all is a usage error.
+    expect((await cli("lint", root, "--files", "missing.gd")).code).toBe(2);
+  });
+
+  it("resolves --files paths relative to the project root when the cwd differs", async () => {
+    const root = project("files-root-relative", { "a.gd": "var a = 1\n" });
+    const found = await cli("lint", root, "--files", "a.gd");
+    expect(files(found.out)).toEqual(["a.gd"]);
+    expect(found.code).toBe(0);
+  });
+
+  it.runIf(process.platform === "win32")("matches --files paths case-insensitively on case-insensitive filesystems", async () => {
+    const root = project("files-case", { "a.gd": "var a = 1\n" });
+    const found = await cli("lint", root, "--files", join(root, "A.GD"));
+    expect(files(found.out)).toEqual(["a.gd"]);
   });
 
   it("is rejected for non-lint commands and with --write-baseline", async () => {

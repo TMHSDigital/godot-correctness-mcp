@@ -1,18 +1,71 @@
 import { execFileSync } from "node:child_process";
+import { existsSync, realpathSync } from "node:fs";
+
 import { isAbsolute, relative, resolve } from "node:path";
 import { toPosix } from "./walk.js";
 
+/** A user-supplied `--files` path that could not be resolved to a project file. */
+export interface DroppedPath {
+  /** The path as the user typed it. */
+  path: string;
+  reason: "does not exist" | "outside the project root";
+}
+
+/** A user-supplied `--files` path resolved to a root-relative POSIX path. */
+export interface KeptPath {
+  /** Root-relative POSIX path, with the on-disk casing. */
+  rel: string;
+  /** The path as the user typed it. */
+  path: string;
+}
+
 /**
- * Normalise user-supplied file paths (absolute, or relative to the current
- * directory) to root-relative POSIX paths. Paths outside the root are dropped.
+ * Normalise user-supplied `--files` paths (absolute, relative to the current
+ * directory, or relative to the project root) to root-relative POSIX paths.
+ * Paths that do not exist, or that fall outside the root, are reported in
+ * `dropped` with the reason instead of silently vanishing. On case-insensitive
+ * filesystems the kept paths carry the on-disk casing so they match the walk.
  */
-export function toProjectPaths(root: string, paths: string[]): string[] {
-  const out: string[] = [];
+export function resolveProjectPaths(root: string, paths: string[]): { kept: KeptPath[]; dropped: DroppedPath[] } {
+  const realRoot = toReal(root) ?? root;
+  const kept: KeptPath[] = [];
+  const dropped: DroppedPath[] = [];
   for (const p of paths) {
-    const rel = toPosix(relative(resolve(root), resolve(p)));
-    if (rel && !rel.startsWith("../") && rel !== ".." && !isAbsolute(rel)) out.push(rel);
+    const cwdAbs = resolve(p);
+    const rootAbs = resolve(realRoot, p);
+    const abs = isInside(realRoot, cwdAbs) && existsSync(cwdAbs) ? cwdAbs
+      : isInside(realRoot, rootAbs) && existsSync(rootAbs)
+      ? rootAbs
+      : undefined;
+    if (!abs) {
+      dropped.push({ path: p, reason: existsSync(cwdAbs) || existsSync(rootAbs) ? "outside the project root" : "does not exist" });
+      continue;
+    }
+    const rel = toPosix(relative(realRoot, toReal(abs) ?? abs));
+    if (rel && !rel.startsWith("../") && rel !== ".." && !isAbsolute(rel) && !kept.some((k) => k.rel === rel)) {
+      kept.push({ rel, path: p });
+    }
   }
-  return out;
+  return { kept, dropped };
+}
+
+function isInside(root: string, abs: string): boolean {
+  const rel = toPosix(relative(root, abs));
+  return !!rel && rel !== ".." && !rel.startsWith("../") && !isAbsolute(rel);
+}
+
+function toReal(path: string): string | undefined {
+  // The native realpath is the only one that returns the on-disk casing on
+  // case-insensitive filesystems; the JS fallback still resolves symlinks.
+  try {
+    return realpathSync.native(path);
+  } catch {
+    try {
+      return realpathSync(path);
+    } catch {
+      return undefined;
+    }
+  }
 }
 
 /**
