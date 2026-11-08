@@ -30,20 +30,14 @@ export function resolveProjectPaths(root: string, paths: string[]): { kept: Kept
   const kept: KeptPath[] = [];
   const dropped: DroppedPath[] = [];
   for (const p of paths) {
-    const cwdAbs = resolve(p);
-    const rootAbs = resolve(realRoot, p);
-    const abs = isInside(realRoot, cwdAbs) && existsSync(cwdAbs) ? cwdAbs
-      : isInside(realRoot, rootAbs) && existsSync(rootAbs)
-      ? rootAbs
-      : undefined;
-    if (!abs) {
-      dropped.push({ path: p, reason: existsSync(cwdAbs) || existsSync(rootAbs) ? "outside the project root" : "does not exist" });
-      continue;
-    }
-    const real = toReal(abs) ?? abs;
-    // A symlink inside the root can resolve outside it.
-    if (!isInside(realRoot, real)) {
-      dropped.push({ path: p, reason: "outside the project root" });
+    // Compare real paths only: the root is a real path, and a typed path may
+    // differ from it by symlinks, casing, or Windows 8.3 short names (RUNNER~1).
+    const candidates = [resolve(p), resolve(root, p)]
+      .filter((abs) => existsSync(abs))
+      .map((abs) => toReal(abs) ?? abs);
+    const real = candidates.find((c) => isInside(realRoot, c));
+    if (!real) {
+      dropped.push({ path: p, reason: candidates.length > 0 ? "outside the project root" : "does not exist" });
       continue;
     }
     const rel = toPosix(relative(realRoot, real));
