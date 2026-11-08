@@ -20,6 +20,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Fixed
 
 - `removed-api-usage` no longer counts comments as call arguments or override parameters, so multi-line calls and overrides with interleaved comments get the correct arity (#108)
+- `--changed-since` includes tracked and untracked paths containing non-ASCII characters, quotes, tabs, or newlines (#99)
 - `gdcorrect` exits 2 for a nonexistent project directory instead of reporting a clean run
 - Added `THIRD_PARTY_NOTICES.md` (shipped in the npm package) with the MIT notices for the bundled tree-sitter-gdscript grammar and Godot API data (#26)
 
