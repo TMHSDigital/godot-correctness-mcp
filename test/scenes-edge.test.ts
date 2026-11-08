@@ -1,6 +1,7 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { afterAll, describe, expect, it } from "vitest";
 import { runCli } from "../src/cli.js";
 import { parseGodotFile, type GodotValue } from "../src/godot/text-format.js";
@@ -245,6 +246,15 @@ describe("config handling", () => {
     let err = "";
     expect(await runCli(["lint", root], noop, (s) => (err += s))).toBe(2);
     expect(err).toContain("exlude");
+  });
+
+  it("accepts godot-correctness.config.example.json verbatim in a fresh project", async () => {
+    const example = readFileSync(join(dirname(fileURLToPath(import.meta.url)), "../godot-correctness.config.example.json"), "utf8");
+    const root = project("example-cfg", {
+      "project.godot": "[application]\n",
+      "godot-correctness.config.json": example,
+    });
+    expect(await runCli(["report", root, "--format", "pretty"], noop, noop)).toBe(0);
   });
 });
 
