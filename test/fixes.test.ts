@@ -103,22 +103,22 @@ describe("machine-applicable fixes", () => {
     // b.gd has an untyped-declaration and no fixable issues
     writeFileSync(join(root, "b.gd"), "extends Node\n\nvar untyped_b = 2\n");
 
-    const spy = vi.spyOn(engine, "lintSource");
-    spy.mockClear();
-
     let out = "";
     let err = "";
-    const code = await runCli(["lint", root, "--fix"], (s) => (out += s), (s) => (err += s));
+    const spy = vi.spyOn(engine, "lintSource");
+    let code: number;
+    let relsLinted: string[];
+    try {
+      code = await runCli(["lint", root, "--fix"], (s) => (out += s), (s) => (err += s));
+      relsLinted = spy.mock.calls.map((c) => c[0]);
+    } finally {
+      spy.mockRestore();
+    }
 
     expect(code).toBe(0);
     expect(err).toContain("applied 1 fix(es) in 1 file(s)");
-
-    // Initial lint: 2 calls (a.gd and b.gd).
-    // Post-fix re-lint: only 1 call (a.gd was rewritten; b.gd was untouched).
-    const relsLinted = spy.mock.calls.map((c) => c[0]);
+    // Initial lint: a.gd and b.gd. Post-fix re-lint: only the rewritten a.gd.
     expect(relsLinted).toEqual(["a.gd", "b.gd", "a.gd"]);
-
-    spy.mockRestore();
 
     // Verify output is identical to a fresh full run on the resulting state
     let freshOut = "";

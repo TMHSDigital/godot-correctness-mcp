@@ -36,15 +36,25 @@ export async function lintProject(
     findings.push(...(await lintSource(rel, source, cfg)));
   }
 
-  findings.sort(
-    (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.col - b.col,
-  );
+  findings.sort(compareFindings);
 
   return {
     root,
     godotVersion: cfg.projectGodotVersion,
     fileCount: files.length,
     findings,
+    ...severityCounts(findings),
+  };
+}
+
+/** Order findings by file, then line, then column. */
+export function compareFindings(a: Finding, b: Finding): number {
+  return a.file.localeCompare(b.file) || a.line - b.line || a.col - b.col;
+}
+
+/** Count findings per severity. */
+export function severityCounts(findings: Finding[]): Pick<ProjectLintResult, "errorCount" | "warningCount" | "infoCount"> {
+  return {
     errorCount: findings.filter((f) => f.severity === "error").length,
     warningCount: findings.filter((f) => f.severity === "warning").length,
     infoCount: findings.filter((f) => f.severity === "info").length,

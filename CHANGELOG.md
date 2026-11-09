@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+
+- `gdcorrect lint --fix` re-lints only the files it rewrote instead of the whole project (#130)
+
 ## [0.2.0] - 2026-11-08
 
 ### Added

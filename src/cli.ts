@@ -6,7 +6,7 @@ import { isMainModule } from "./entry.js";
 import { applyFixes } from "./lint/fixes.js";
 import { effectiveRules } from "./lint/catalog.js";
 import { loadConfig, type ResolvedConfig } from "./lint/config.js";
-import { lintProject, type ProjectLintResult } from "./lint/project.js";
+import { compareFindings, lintProject, severityCounts, type ProjectLintResult } from "./lint/project.js";
 import type { Finding } from "./lint/types.js";
 import { changedSince, resolveProjectPaths } from "./project/changed.js";
 import { scriptFiles } from "./project/files.js";
@@ -73,9 +73,7 @@ function countErrors(findings: Finding[]): number {
 export function renderPretty(res: CommandResult): string {
   const lines: string[] = [];
   let lastFile = "";
-  const sorted = [...res.findings].sort(
-    (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.col - b.col,
-  );
+  const sorted = [...res.findings].sort(compareFindings);
   for (const f of sorted) {
     if (f.file !== lastFile) {
       lines.push(`\n${f.file}`);
@@ -377,27 +375,13 @@ export async function runCli(
       const fixed = writeFixes(root, res.findings);
       errOut(`gdcorrect: applied ${fixed.applied} fix(es) in ${fixed.files} file(s).`);
       if (fixed.applied > 0) {
-        if (command === "lint") {
-          const changedSet = new Set(fixed.changed);
-          const untouched = res.findings.filter((f) => !changedSet.has(f.file));
-          const partial = await lintProject(root, undefined, { only: fixed.changed });
-          const mergedFindings = [...untouched, ...partial.findings].sort(
-            (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.col - b.col,
-          );
-          const prev = res.payload as ProjectLintResult;
-          const payload: ProjectLintResult = {
-            root,
-            godotVersion: prev?.godotVersion ?? null,
-            fileCount: prev?.fileCount ?? partial.fileCount,
-            findings: mergedFindings,
-            errorCount: mergedFindings.filter((f) => f.severity === "error").length,
-            warningCount: mergedFindings.filter((f) => f.severity === "warning").length,
-            infoCount: mergedFindings.filter((f) => f.severity === "info").length,
-          };
-          res = { root, findings: mergedFindings, payload };
-        } else {
-          res = await runCommand(command, root, only);
-        }
+        // --fix is lint-only. Lint rules see one file at a time and the fixes only
+        // edit the file they are in, so re-linting the rewritten files is enough.
+        const changed = new Set(fixed.changed);
+        const untouched = res.findings.filter((f) => !changed.has(f.file));
+        const partial = await lintProject(root, undefined, { only: changed });
+        const findings = [...untouched, ...partial.findings].sort(compareFindings);
+        res = { root, findings, payload: { ...(res.payload as ProjectLintResult), findings, ...severityCounts(findings) } };
       }
     }
     if (writeTo) {
