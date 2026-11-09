@@ -6,7 +6,7 @@ import { isMainModule } from "./entry.js";
 import { applyFixes } from "./lint/fixes.js";
 import { effectiveRules } from "./lint/catalog.js";
 import { loadConfig, type ResolvedConfig } from "./lint/config.js";
-import { lintProject } from "./lint/project.js";
+import { lintProject, type ProjectLintResult } from "./lint/project.js";
 import type { Finding } from "./lint/types.js";
 import { changedSince, resolveProjectPaths } from "./project/changed.js";
 import { scriptFiles } from "./project/files.js";
@@ -234,7 +234,7 @@ function render(res: CommandResult, format: Format): string {
 }
 
 /** Apply every fixable finding in place, file by file. */
-function writeFixes(root: string, findings: Finding[]): { applied: number; files: number } {
+function writeFixes(root: string, findings: Finding[]): { applied: number; files: number; changed: string[] } {
   const byFile = new Map<string, Finding[]>();
   for (const f of findings) {
     if (!f.fix) continue;
@@ -244,6 +244,7 @@ function writeFixes(root: string, findings: Finding[]): { applied: number; files
   }
   let applied = 0;
   let files = 0;
+  const changed: string[] = [];
   for (const [rel, fs] of byFile) {
     const full = join(root, rel);
     const r = applyFixes(readFileSync(full, "utf-8"), fs);
@@ -251,8 +252,9 @@ function writeFixes(root: string, findings: Finding[]): { applied: number; files
     writeFileSync(full, r.source);
     applied += r.applied;
     files++;
+    changed.push(rel);
   }
-  return { applied, files };
+  return { applied, files, changed };
 }
 
 /** `gdcorrect rules [projectPath]`: the rule catalogue, optionally with a project's effective config. */
@@ -374,7 +376,29 @@ export async function runCli(
     if (parsed.fix) {
       const fixed = writeFixes(root, res.findings);
       errOut(`gdcorrect: applied ${fixed.applied} fix(es) in ${fixed.files} file(s).`);
-      if (fixed.applied > 0) res = await runCommand(command, root, only);
+      if (fixed.applied > 0) {
+        if (command === "lint") {
+          const changedSet = new Set(fixed.changed);
+          const untouched = res.findings.filter((f) => !changedSet.has(f.file));
+          const partial = await lintProject(root, undefined, { only: fixed.changed });
+          const mergedFindings = [...untouched, ...partial.findings].sort(
+            (a, b) => a.file.localeCompare(b.file) || a.line - b.line || a.col - b.col,
+          );
+          const prev = res.payload as ProjectLintResult;
+          const payload: ProjectLintResult = {
+            root,
+            godotVersion: prev?.godotVersion ?? null,
+            fileCount: prev?.fileCount ?? partial.fileCount,
+            findings: mergedFindings,
+            errorCount: mergedFindings.filter((f) => f.severity === "error").length,
+            warningCount: mergedFindings.filter((f) => f.severity === "warning").length,
+            infoCount: mergedFindings.filter((f) => f.severity === "info").length,
+          };
+          res = { root, findings: mergedFindings, payload };
+        } else {
+          res = await runCommand(command, root, only);
+        }
+      }
     }
     if (writeTo) {
       const b = createBaseline(root, res.findings);
