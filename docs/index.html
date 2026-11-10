@@ -3,53 +3,372 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>godot-correctness-mcp</title>
+  <title>godot-correctness-mcp: static checks for Godot 4 GDScript projects</title>
+  <meta name="color-scheme" content="dark light">
   <style>
-    body { font-family: system-ui, sans-serif; background: #0d1117; color: #e6edf3; margin: 0; padding: 2rem; max-width: 52rem; line-height: 1.55; }
-    h1 { color: #7c3aed; margin-bottom: 0.25rem; }
-    h2 { color: #a78bfa; margin-top: 2rem; }
-    a { color: #a78bfa; }
-    code, pre { background: #161b22; border-radius: 6px; }
-    code { padding: 0.1rem 0.35rem; }
-    pre { padding: 1rem; overflow-x: auto; }
-    ul { padding-left: 1.25rem; }
+    :root {
+      --bg: #11161c;
+      --surface: #171e26;
+      --code-bg: #0b0f14;
+      --line: #263140;
+      --text: #dfe6ee;
+      --muted: #93a1b1;
+      --accent: #6aa8dc;
+      --accent-strong: #478cbf;
+      --error: #f07a7a;
+      --warning: #e5b567;
+      --info: #8fb8de;
+      --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", Menlo, Consolas, monospace;
+      --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f6f7f9;
+        --surface: #ffffff;
+        --code-bg: #eef1f5;
+        --line: #d5dbe3;
+        --text: #1b2430;
+        --muted: #556274;
+        --accent: #2d6a9c;
+        --accent-strong: #2d6a9c;
+        --error: #b42323;
+        --warning: #8a5a00;
+        --info: #2d5f8c;
+      }
+    }
+    * { box-sizing: border-box; }
+    html { scroll-padding-top: 4.5rem; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 var(--sans); }
+    a { color: var(--accent); text-underline-offset: 0.15em; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 3px; }
+    code, pre, .id { font-family: var(--mono); font-size: 0.875em; font-variant-ligatures: none; }
+    :not(pre) > code { background: var(--code-bg); border: 1px solid var(--line); border-radius: 4px; padding: 0.05em 0.35em; }
+    .wrap { max-width: 70rem; margin: 0 auto; padding: 0 1.5rem; }
+    .skip { position: absolute; left: -999px; }
+    .skip:focus { left: 1rem; top: 0.5rem; z-index: 10; background: var(--surface); padding: 0.5rem 0.75rem; }
+
+    header.bar { position: sticky; top: 0; z-index: 5; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+    header.bar .wrap { display: flex; align-items: center; gap: 1.5rem; height: 3.5rem; }
+    .brand { font-family: var(--mono); font-weight: 600; color: var(--text); text-decoration: none; white-space: nowrap; }
+    .brand span { color: var(--accent); }
+    nav.sections { display: flex; gap: 1.25rem; overflow-x: auto; scrollbar-width: none; flex: 1; }
+    nav.sections a, .ext a { color: var(--muted); text-decoration: none; white-space: nowrap; font-size: 0.95rem; padding: 0.25rem 0; }
+    nav.sections a:hover, .ext a:hover { color: var(--text); }
+    nav.sections a[aria-current="true"] { color: var(--text); box-shadow: inset 0 -2px 0 var(--accent-strong); }
+    .ext { display: flex; gap: 1rem; }
+
+    .hero { padding-top: 4rem; padding-bottom: 3rem; }
+    .hero .intro { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 3rem; align-items: start; margin-bottom: 2.5rem; }
+    .hero h1 { font-size: clamp(1.9rem, 3.4vw, 2.6rem); line-height: 1.15; margin: 0 0 1rem; letter-spacing: -0.01em; }
+    .hero p { color: var(--muted); margin: 0 0 1rem; max-width: 34rem; }
+    .hero p strong { color: var(--text); font-weight: 600; }
+    .facts { list-style: none; padding: 0; margin: 1.5rem 0 0; display: grid; gap: 0.4rem; color: var(--muted); font-size: 0.95rem; }
+    .facts li::before { content: "– "; color: var(--accent-strong); }
+    .file-label { font-family: var(--mono); font-size: 0.8rem; color: var(--muted); margin: 0 0 0.4rem; }
+
+    section { padding: 3rem 0; border-top: 1px solid var(--line); }
+    h2 { font-size: 1.5rem; margin: 0 0 0.5rem; }
+    h3 { font-size: 1.05rem; margin: 2rem 0 0.5rem; }
+    section > .wrap > p.lead { color: var(--muted); max-width: 44rem; margin: 0 0 1.5rem; }
+    .cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 2rem; }
+    .cols p { margin: 0 0 0.75rem; }
+
+    .code { position: relative; }
+    pre { background: var(--code-bg); border: 1px solid var(--line); border-radius: 6px; padding: 1rem 1.1rem; margin: 0 0 1rem; overflow-x: auto; line-height: 1.5; }
+    .copy { position: absolute; top: 0.45rem; right: 0.45rem; font: 0.8rem var(--sans); color: var(--muted); background: var(--surface); border: 1px solid var(--line); border-radius: 4px; padding: 0.2rem 0.55rem; cursor: pointer; }
+    .copy:hover { color: var(--text); }
+    .c { color: var(--muted); }
+
+    .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; margin-bottom: 1rem; }
+    table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+    th, td { text-align: left; vertical-align: top; padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line); }
+    tr:last-child td { border-bottom: 0; }
+    th { font-weight: 600; color: var(--muted); font-size: 0.85rem; background: var(--surface); }
+    td.id { white-space: nowrap; }
+    .sev { font-family: var(--mono); font-size: 0.8rem; white-space: nowrap; }
+    .sev.error { color: var(--error); }
+    .sev.warning { color: var(--warning); }
+    .sev.info { color: var(--info); }
+
+    dl.exit { display: grid; grid-template-columns: max-content 1fr; gap: 0.5rem 1rem; margin: 0 0 1rem; }
+    dl.exit dt { font-family: var(--mono); font-weight: 600; }
+    dl.exit dd { margin: 0; }
+
+    ul.plain { padding-left: 1.1rem; margin: 0 0 1rem; }
+    ul.plain li { margin-bottom: 0.35rem; }
+    .tools { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.5rem; }
+    .tools h3 { margin-top: 0; }
+    .tools ul { list-style: none; padding: 0; margin: 0; font-family: var(--mono); font-size: 0.875rem; }
+    .tools li { padding: 0.15rem 0; }
+
+    footer { border-top: 1px solid var(--line); padding: 2rem 0 3rem; color: var(--muted); font-size: 0.9rem; }
+    footer .wrap { display: flex; flex-wrap: wrap; gap: 0.5rem 1.5rem; }
+
+    @media (max-width: 860px) {
+      .hero .intro, .cols { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+      .hero { padding-top: 2.5rem; }
+      .tools { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .ext { display: none; }
+      nav.sections { mask-image: linear-gradient(to right, #000 80%, transparent); padding-right: 1.5rem; }
+      header.bar .wrap { gap: 1rem; }
+    }
+    @media (max-width: 520px) {
+      .brand .full { display: none; }
+      .tools { grid-template-columns: minmax(0, 1fr); }
+      td.id { white-space: normal; word-break: break-word; }
+    }
   </style>
 </head>
 <body>
-  <h1>godot-correctness-mcp</h1>
-  <p>Offline static correctness MCP server (and <code>gdcorrect</code> CLI) for Godot 4.x GDScript projects.
-     It runs headless, offline, and in CI: no editor, no running Godot instance, no network at runtime.</p>
+  <a class="skip" href="#main">Skip to content</a>
+  <header class="bar">
+    <div class="wrap">
+      <a class="brand" href="#top">gd<span>correct</span><span class="full" style="color:var(--muted)"> · godot-correctness-mcp</span></a>
+      <nav class="sections" aria-label="Sections">
+        <a href="#ci">CI</a>
+        <a href="#rules">Rules</a>
+        <a href="#cli">CLI</a>
+        <a href="#mcp">MCP server</a>
+        <a href="#limits">Limits</a>
+      </nav>
+      <div class="ext">
+        <a href="https://github.com/TMHSDigital/godot-correctness-mcp">GitHub</a>
+        <a href="https://www.npmjs.com/package/@tmhs/godot-correctness-mcp">npm</a>
+      </div>
+    </div>
+  </header>
 
-  <h2>Pillars</h2>
-  <ul>
-    <li><strong>GDScript linting</strong> with a committed tree-sitter grammar:
-      <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/docs/lint.md">lint rules and config</a></li>
-    <li><strong>Cross-version API lookup and diff</strong> for Godot 4.4 and 4.5:
-      <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/docs/symbol-db.md">symbol databases</a></li>
-    <li><strong>Scene, project, and registry analysis</strong> for <code>.tscn</code>, <code>.tres</code>, and <code>project.godot</code>:
-      <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/docs/scenes.md">checks</a></li>
-  </ul>
+  <main id="main">
+    <div class="wrap hero" id="top">
+      <div class="intro">
+        <h1>Catch broken GDScript, scenes, and resource paths before they reach a playtest.</h1>
+        <div>
+        <p><strong>gdcorrect</strong> statically checks Godot 4 projects: GDScript lint rules, <code>.tscn</code> and
+           <code>project.godot</code> validation, dangling paths in <code>.tres</code> registries, and API removed between
+           Godot 4.4 and 4.5.</p>
+        <p>It runs headless and offline. No editor, no Godot binary, no network. The same checks are available to AI
+           coding assistants as an MCP server.</p>
+        <ul class="facts">
+          <li>Node.js 22 or newer</li>
+          <li>Godot 4.4 and 4.5 API data, GDScript only</li>
+          <li>Version 0.2.0 on npm as <code>@tmhs/godot-correctness-mcp</code></li>
+        </ul>
+        </div>
+      </div>
+      <div>
+        <p class="file-label">.github/workflows/godot-correctness.yml</p>
+        <div class="code"><pre><code>jobs:
+  correctness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Lint GDScript (fails on error-severity findings)
+        run: npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect lint . --format json
+      <span class="c"># Only checks something once registryDirs is set in godot-correctness.config.json.</span>
+      - name: Validate registries
+        run: npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect validate-registries . --format json</code></pre></div>
+      </div>
+    </div>
 
-  <h2>Use it as an MCP server</h2>
-  <pre><code>{
+    <section id="ci">
+      <div class="wrap">
+        <h2>Add it to CI</h2>
+        <p class="lead">The job above fails when any <code>error</code>-severity finding is present. On a project with
+           existing findings, gate only on new ones, and send findings to pull requests as annotations.</p>
+        <div class="cols">
+          <div>
+            <h3>Adopt on an existing project</h3>
+            <p>Record today's findings once and commit the file. CI then fails only on findings that are not in it.</p>
+            <div class="code"><pre><code>gdcorrect report . --write-baseline gdcorrect-baseline.json   <span class="c"># commit this file</span>
+gdcorrect report . --baseline gdcorrect-baseline.json         <span class="c"># in CI</span></code></pre></div>
+            <p>Findings match by rule, file, and the text of the flagged line, so edits that only shift lines keep
+               matching. Fixed findings show up as stale entries; rewrite the baseline to drop them.</p>
+            <h3>Lint only what changed</h3>
+            <div class="code"><pre><code>gdcorrect lint . --changed-since origin/main
+gdcorrect lint . --files player.gd,enemy.gd</code></pre></div>
+            <p><code>--changed-since</code> includes uncommitted and untracked files, which suits pre-commit hooks.</p>
+          </div>
+          <div>
+            <h3>Annotate pull requests with SARIF</h3>
+            <p>Upload SARIF 2.1.0 to GitHub code scanning. Run from the repository root so paths line up.</p>
+            <div class="code"><pre><code>    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: gdcorrect (SARIF)
+        run: npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect report . --format sarif > gdcorrect.sarif
+        continue-on-error: true   <span class="c"># let the upload step run; code scanning gates the PR</span>
+      - uses: github/codeql-action/upload-sarif@v3
+        with: { sarif_file: gdcorrect.sarif }</code></pre></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="rules">
+      <div class="wrap">
+        <h2>What it checks</h2>
+        <p class="lead">Detection is deliberately conservative: in a CI gate a false positive costs more than a miss.
+           Every rule can be disabled or given a different severity in <code>godot-correctness.config.json</code>, and
+           silenced per line with <code># gdcorrect-ignore[rule-id]</code>.
+           <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/docs/lint.md">Full lint reference</a>.</p>
+
+        <h3>GDScript lint rules</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Rule</th><th>Default</th><th>Flags</th></tr></thead>
+          <tbody>
+            <tr><td class="id">delta-misuse</td><td class="sev error">error</td><td><code>velocity = speed * delta</code> in a function that calls <code>move_and_slide()</code>, which already applies frame timing. Also, at <code>info</code>: <code>position</code> or <code>rotation</code> changed in <code>_process</code> with no <code>delta</code>.</td></tr>
+            <tr><td class="id">get-node-in-process</td><td class="sev warning">warning</td><td><code>$</code> or <code>get_node()</code> lookups inside <code>_process</code> / <code>_physics_process</code>, run every frame.</td></tr>
+            <tr><td class="id">missing-onready</td><td class="sev warning">warning</td><td>A class-level member initialized from a node path without <code>@onready</code>. Fixable with <code>--fix</code>.</td></tr>
+            <tr><td class="id">untyped-declaration</td><td class="sev warning">warning</td><td><code>var x = ...</code> with neither a type hint nor <code>:=</code>.</td></tr>
+            <tr><td class="id">await-misuse</td><td class="sev warning">warning</td><td><code>await</code> applied to a literal value.</td></tr>
+            <tr><td class="id">removed-api-usage</td><td class="sev warning">warning</td><td>Engine API removed in the Godot version your <code>project.godot</code> declares, calls whose argument count became invalid, and overrides of virtuals that were removed or changed arity.</td></tr>
+            <tr><td class="id">stringly-nodepath</td><td class="sev info">info</td><td>A string-literal node path passed to <code>get_node()</code>, <code>NodePath()</code> and similar, which breaks on rename. A plain <code>get_node("A/B")</code> is fixable to <code>$A/B</code>.</td></tr>
+            <tr><td class="id">connect-without-disconnect</td><td class="sev info">info</td><td><code>connect()</code> in <code>_ready()</code> with no <code>disconnect()</code> anywhere and no <code>CONNECT_ONE_SHOT</code>.</td></tr>
+            <tr><td class="id">float-grid-equality</td><td class="sev info">info</td><td><code>==</code> / <code>!=</code> against a float literal or a <code>Vector2/3/4(...)</code>.</td></tr>
+          </tbody>
+        </table></div>
+
+        <h3>Scenes, project settings, and registries</h3>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Check</th><th>Default</th><th>Flags</th></tr></thead>
+          <tbody>
+            <tr><td class="id">registry-dangling-path</td><td class="sev error">error</td><td>A string property in a <code>.tres</code> registry that looks like a resource path and points at a missing file. Enabled by listing <code>registryDirs</code> in the config.</td></tr>
+            <tr><td class="id">registry-script-missing</td><td class="sev error">error</td><td>A registry resource whose script resolves to no existing <code>.gd</code> (by uid first, then path).</td></tr>
+            <tr><td class="id">scene-ext-resource-missing</td><td class="sev error">error</td><td>An <code>ext_resource</code> path that does not resolve to a file.</td></tr>
+            <tr><td class="id">scene-node-parent-missing</td><td class="sev error">error</td><td>A <code>[node parent="..."]</code> that names no node in the scene.</td></tr>
+            <tr><td class="id">scene-connection-method-missing</td><td class="sev error">error</td><td>A <code>[connection]</code> to a method the target node's script does not have.</td></tr>
+            <tr><td class="id">scene-node-path-missing</td><td class="sev warning">warning</td><td>A literal <code>$A/B</code> or <code>get_node("A/B")</code> that resolves in none of the scenes the script is attached to.</td></tr>
+            <tr><td class="id">project-main-scene-missing</td><td class="sev error">error</td><td><code>run/main_scene</code> points at a missing scene.</td></tr>
+            <tr><td class="id">project-autoload-missing</td><td class="sev error">error</td><td>An <code>[autoload]</code> entry points at a missing file.</td></tr>
+            <tr><td class="id">project-input-action-undefined</td><td class="sev warning">warning</td><td>An action name passed to <code>Input.is_action_*</code> and similar that is not defined in <code>[input]</code>.</td></tr>
+          </tbody>
+        </table></div>
+        <p>Also: duplicate and undeclared resource ids, stale or mismatched <code>uid://</code> references, malformed
+           input actions, and registry parse errors.
+           <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/docs/scenes.md">Every scene, project, and registry check</a>.</p>
+      </div>
+    </section>
+
+    <section id="cli">
+      <div class="wrap">
+        <h2>CLI</h2>
+        <p class="lead"><code>gdcorrect &lt;command&gt; &lt;projectPath&gt; [options]</code>. Commands: <code>lint</code>,
+           <code>validate-scenes</code>, <code>validate-project</code>, <code>validate-registries</code>, <code>report</code>
+           (lint plus every scene, project, and registry check), and <code>rules</code> (every rule id with its default and project severity).</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th>Option</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td class="id">--format json|pretty|sarif</td><td>Output format, default <code>json</code>. <code>sarif</code> is SARIF 2.1.0 for code scanning.</td></tr>
+            <tr><td class="id">--fail-on error|warning|info|none</td><td>Lowest severity that fails the run, default <code>error</code>.</td></tr>
+            <tr><td class="id">--baseline &lt;file&gt;</td><td>Report only findings that are not in the baseline.</td></tr>
+            <tr><td class="id">--write-baseline &lt;file&gt;</td><td>Record the current findings as the baseline and exit 0.</td></tr>
+            <tr><td class="id">--fix</td><td><code>lint</code> only: apply machine-applicable fixes in place, then report what remains.</td></tr>
+            <tr><td class="id">--files a.gd,b.gd</td><td><code>lint</code> only: check just these files.</td></tr>
+            <tr><td class="id">--changed-since &lt;git-ref&gt;</td><td><code>lint</code> only: check files changed since the ref, plus uncommitted and untracked ones.</td></tr>
+          </tbody>
+        </table></div>
+        <h3>Exit codes</h3>
+        <dl class="exit">
+          <dt>0</dt><dd>No findings at or above <code>--fail-on</code>.</dd>
+          <dt>1</dt><dd>At least one finding at or above <code>--fail-on</code>.</dd>
+          <dt>2</dt><dd>A usage, config, or tool error.</dd>
+        </dl>
+        <p><code>gdcorrect --help</code> lists every command and option.</p>
+      </div>
+    </section>
+
+    <section id="mcp">
+      <div class="wrap">
+        <h2>MCP server</h2>
+        <p class="lead">Give an AI coding assistant the same checks, plus offline lookups into the Godot 4.4 and 4.5 API.
+           Add this to your client's <code>mcpServers</code> config (Claude Desktop, Cursor, and others):</p>
+        <div class="code"><pre><code>{
   "mcpServers": {
     "godot-correctness": {
       "command": "npx",
       "args": ["-y", "@tmhs/godot-correctness-mcp"]
     }
   }
-}</code></pre>
+}</code></pre></div>
+        <div class="tools">
+          <div><h3>Lint</h3><ul><li>lint_file</li><li>lint_project</li><li>list_rules</li></ul></div>
+          <div><h3>Scenes and project</h3><ul><li>validate_scenes</li><li>validate_project_config</li><li>validate_registries</li><li>project_report</li></ul></div>
+          <div><h3>Godot API</h3><ul><li>api_symbol_lookup</li><li>api_class_summary</li><li>api_diff</li></ul></div>
+          <div><h3>Server</h3><ul><li>server_info</li></ul></div>
+        </div>
+        <p style="margin-top:1.5rem"><code>lint_project</code>, the <code>validate_*</code> tools, and <code>project_report</code>
+           accept a <code>baseline</code> file written by <code>gdcorrect --write-baseline</code>. The server also exposes
+           short GDScript guides as <code>skill://</code> resources: data-driven resources, signal hygiene, typed GDScript,
+           and preload vs load.</p>
+      </div>
+    </section>
 
-  <h2>Use it in CI</h2>
-  <pre><code>npx -y -p @tmhs/godot-correctness-mcp@^0.2 gdcorrect lint . --format json</code></pre>
-  <p>Exit code 0 is clean, 1 means error-severity findings, and 2 means a tool failure.</p>
+    <section id="limits">
+      <div class="wrap">
+        <h2>What it does not do</h2>
+        <div class="cols">
+          <ul class="plain">
+            <li><strong>No live bridge.</strong> It never connects to a running editor or game. Use a live-session Godot MCP tool for that; this is the one for CI and headless pipelines.</li>
+            <li><strong>No editor plugin.</strong> Nothing to install inside Godot.</li>
+            <li><strong>No C#.</strong> GDScript only.</li>
+            <li><strong>Nothing older than Godot 4.4.</strong> API data is pinned to 4.4 and 4.5.</li>
+          </ul>
+          <div>
+            <h3 style="margin-top:0">License</h3>
+            <p>CC-BY-NC-ND-4.0. The bundled tree-sitter-gdscript grammar and Godot API data are MIT-licensed upstream
+               material; see <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/THIRD_PARTY_NOTICES.md">THIRD_PARTY_NOTICES.md</a>.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
 
-  <h2>Tools</h2>
-  <p><code>server_info</code>, <code>api_symbol_lookup</code>, <code>api_class_summary</code>, <code>api_diff</code>,
-     <code>lint_file</code>, <code>lint_project</code>, <code>list_rules</code>, <code>validate_scenes</code>, <code>validate_project_config</code>,
-     <code>validate_registries</code>, <code>project_report</code>.</p>
+  <footer>
+    <div class="wrap">
+      <a href="https://github.com/TMHSDigital/godot-correctness-mcp">Source and README</a>
+      <a href="https://www.npmjs.com/package/@tmhs/godot-correctness-mcp">npm package</a>
+      <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/ROADMAP.md">Roadmap</a>
+      <a href="https://github.com/TMHSDigital/godot-correctness-mcp/issues">Issues</a>
+      <span>Built by TMHSDigital</span>
+    </div>
+  </footer>
 
-  <p><a href="https://github.com/TMHSDigital/godot-correctness-mcp">README and source on GitHub</a> ·
-     <a href="https://github.com/TMHSDigital/godot-correctness-mcp/blob/main/CHANGELOG.md">Changelog</a></p>
+  <script>
+    for (const pre of document.querySelectorAll(".code pre")) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "copy";
+      button.textContent = "Copy";
+      button.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(pre.innerText);
+          button.textContent = "Copied";
+        } catch {
+          button.textContent = "Select and copy";
+        }
+        setTimeout(() => (button.textContent = "Copy"), 1500);
+      });
+      pre.parentElement.appendChild(button);
+    }
+    const links = [...document.querySelectorAll("nav.sections a")];
+    const observer = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        for (const a of links) a.setAttribute("aria-current", String(a.hash === "#" + e.target.id));
+      }
+    }, { rootMargin: "-40% 0px -55% 0px" });
+    for (const a of links) {
+      const target = document.querySelector(a.hash);
+      if (target) observer.observe(target);
+    }
+  </script>
 </body>
 </html>
