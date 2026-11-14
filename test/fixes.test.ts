@@ -26,9 +26,10 @@ describe("machine-applicable fixes", () => {
     const src = "extends Node\n\nvar label: Label = $Label\n@export var other: Node = get_node(\"Other\")\n";
     const { fixed, after } = await roundTrip(src);
     expect(fixed).toBe(
-      "extends Node\n\n@onready var label: Label = $Label\n@onready @export var other: Node = $Other\n",
+      "extends Node\n\n@onready var label: Label = $Label\n@export var other: Node = $Other\n",
     );
-    expect(after).not.toContain("missing-onready");
+    // The exported member is still flagged (no fix), so it survives the round-trip.
+    expect(after).toContain("missing-onready");
     expect(after).not.toContain("stringly-nodepath");
   });
 

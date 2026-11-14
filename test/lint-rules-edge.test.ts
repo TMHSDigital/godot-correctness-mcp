@@ -107,6 +107,17 @@ describe("missing-onready", () => {
     // Inner classes are not nodes in the tree, so their members are not checked.
     expect(await hits("missing-onready", 'extends Node\nclass Inner:\n\tvar a = get_node("A")\n')).toEqual([]);
   });
+
+  it("does not flag an @onready separated by a comment", async () => {
+    expect(await hits("missing-onready", 'extends Node\n\n@onready\n# player sprite\nvar a: Node = $A\n')).toEqual([]);
+  });
+
+  it("flags @export members without attaching a fix", async () => {
+    const src = "extends Node\n\n@export var c: Node = $C\n@export_enum(\"A\", \"B\")\n@export var d: Node = $D\n";
+    const findings = (await lintSource("x.gd", src, resolveConfig())).filter((f) => f.ruleId === "missing-onready");
+    expect(findings).toHaveLength(2);
+    expect(findings.map((f) => !!f.fix)).toEqual([false, false]);
+  });
 });
 
 describe("untyped-declaration", () => {

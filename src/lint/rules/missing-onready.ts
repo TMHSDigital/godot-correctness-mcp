@@ -18,16 +18,35 @@ function isOnready(a: Node, source: string): boolean {
   return !!id && text(id, source) === "onready";
 }
 
-function hasOnready(vs: Node, source: string): boolean {
+/** Annotations attached to a declaration: same-line and preceding siblings. */
+function siblingAnnotations(vs: Node): Node[] {
+  const groups: Node[] = [];
   // Same line: `@onready var a = $A` (an `annotations` child).
   for (const c of vs.namedChildren) {
-    if (c?.type !== "annotations") continue;
-    for (const a of walk(c)) if (isOnready(a, source)) return true;
+    if (c?.type === "annotations") groups.push(c);
   }
   // Own line(s) above: `@onready` / `@export_group(...)` parse as preceding
-  // standalone `annotation` siblings of the declaration.
-  for (let s = vs.previousNamedSibling; s && (s.type === "annotation" || s.type === "annotations"); s = s.previousNamedSibling) {
-    for (const a of walk(s)) if (isOnready(a, source)) return true;
+  // standalone `annotation` siblings. Keep walking past comments so an
+  // `@onready` above a comment is still seen.
+  for (let s = vs.previousNamedSibling; s && (s.type === "annotation" || s.type === "annotations" || s.type === "comment"); s = s.previousNamedSibling) {
+    if (s.type === "annotation" || s.type === "annotations") groups.push(s);
+  }
+  return groups;
+}
+
+function hasOnready(vs: Node, source: string): boolean {
+  for (const g of siblingAnnotations(vs)) {
+    for (const a of walk(g)) if (isOnready(a, source)) return true;
+  }
+  return false;
+}
+
+function hasExport(vs: Node, source: string): boolean {
+  for (const g of siblingAnnotations(vs)) {
+    for (const a of walk(g)) {
+      const id = a?.namedChild(0);
+      if (id && text(id, source).startsWith("export")) return true;
+    }
   }
   return false;
 }
@@ -45,6 +64,14 @@ export const missingOnready: Rule = {
       const value = vs.childForFieldName("value");
       if (!isNodeLookup(value, ctx.source)) continue;
       if (hasOnready(vs, ctx.source)) continue;
+      if (hasExport(vs, ctx.source)) {
+        out.push({
+          node: vs,
+          message: "Node-path member initialized without @onready; @onready cannot combine with @export, and the exported value would be overwritten when the initializer runs.",
+          suggestion: "Use an exported NodePath and resolve it in _ready(), or drop the node-path initializer.",
+        });
+        continue;
+      }
       out.push({
         node: vs,
         message: "Node-path member initialized without @onready; the child may not exist when the initializer runs.",
