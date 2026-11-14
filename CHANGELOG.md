@@ -10,6 +10,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - `gdcorrect lint --fix` re-lints only the files it rewrote instead of the whole project (#130)
 
+### Fixed
+
+- `missing-onready` no longer offers an auto-fix for exported members: combining `@onready` with `@export` changes when the inspector value applies, so exported members are flagged without a fix. The rule also looks past comments between `@onready` and the declaration, so it no longer adds a duplicate tag (#100)
+
 ## [0.2.0] - 2026-11-08
 
 ### Added
