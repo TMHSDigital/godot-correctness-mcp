@@ -46,6 +46,7 @@ describe("near-miss negatives", () => {
     ["get-node-in-process", "extends Node\n\nfunc _ready() -> void:\n\tvar s: Sprite2D = $Sprite2D\n\ts.visible = true\n"],
     ["missing-onready", "extends Node\n\n@onready var label: Label = $Label\n"],
     ["missing-onready", "extends Node\n\n@onready\nvar label: Label = $Label\n"],
+    ["missing-onready", "extends Node\n\n@onready\n# the player sprite\nvar a: Node = $A\n"],
     ["missing-onready", 'extends Node\n\n@onready\n@warning_ignore("unused_private_class_variable")\nvar _l: Label = $Label\n'],
     ["await-misuse", "extends Node\n\nfunc f() -> void:\n\tawait get_tree().create_timer(1.0).timeout\n"],
     [
