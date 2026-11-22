@@ -85,9 +85,9 @@ export const missingOnready: Rule = {
         out.push({
           node: vs,
           message:
-            "Exported node-path member initialized without @onready; the initializer can overwrite the value set in the inspector.",
+            "Exported node-path member initialized without @onready; the child may not exist when the initializer runs.",
           suggestion:
-            "Resolve the node in _ready, or export a NodePath instead. No automatic fix is offered: adding @onready would change when the exported value applies.",
+            "Resolve the node in _ready only when the inspector assigned no value, or export a NodePath instead. No automatic fix is offered: adding @onready would overwrite the assigned value.",
         });
         continue;
       }
