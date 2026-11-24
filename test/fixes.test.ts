@@ -22,14 +22,34 @@ async function roundTrip(source: string): Promise<{ fixed: string; after: string
 }
 
 describe("machine-applicable fixes", () => {
-  it("missing-onready: adds @onready", async () => {
-    const src = "extends Node\n\nvar label: Label = $Label\n@export var other: Node = get_node(\"Other\")\n";
+  it("missing-onready: adds @onready, leaves exported members alone", async () => {
+    const src = "extends Node\n\nvar label: Label = $Label\n@export var other: Node = $Other\n";
     const { fixed, after } = await roundTrip(src);
-    expect(fixed).toBe(
-      "extends Node\n\n@onready var label: Label = $Label\n@onready @export var other: Node = $Other\n",
-    );
-    expect(after).not.toContain("missing-onready");
-    expect(after).not.toContain("stringly-nodepath");
+    expect(fixed).toBe("extends Node\n\n@onready var label: Label = $Label\n@export var other: Node = $Other\n");
+    // The exported member still warns, but no fix is offered for it.
+    expect(after).toEqual(["missing-onready"]);
+  });
+
+  it("missing-onready: @onready above a comment is still seen", async () => {
+    const src = "extends Node\n\n@onready\n# the player sprite\nvar a: Node = $A\n";
+    const { fixed, after } = await roundTrip(src);
+    expect(fixed).toBe(src);
+    expect(after).toEqual([]);
+  });
+
+  it("missing-onready: @export_* variants and own-line @export have no fix", async () => {
+    const src = "extends Node\n\n@export_range(0, 10) var a: Node = $A\n@export\nvar b: Node = $B\n";
+    const findings = (await lintSource("x.gd", src, config)).filter((f) => f.ruleId === "missing-onready");
+    expect(findings.map((f) => !!f.fix)).toEqual([false, false]);
+    const { fixed } = await roundTrip(src);
+    expect(fixed).toBe(src);
+  });
+
+  it("missing-onready: @export_group above a plain member still gets the fix", async () => {
+    const src = 'extends Node\n\n@export_group("UI")\nvar label: Label = $Label\n';
+    const { fixed, after } = await roundTrip(src);
+    expect(fixed).toBe('extends Node\n\n@export_group("UI")\n@onready var label: Label = $Label\n');
+    expect(after).toEqual([]);
   });
 
   it("stringly-nodepath: rewrites bare get_node with a plain path to $ shorthand only", async () => {
