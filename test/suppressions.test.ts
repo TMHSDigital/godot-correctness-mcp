@@ -49,6 +49,16 @@ describe("inline suppressions", () => {
       "unused-suppression@1:warning",
     ]);
   });
+
+  it("directive text inside a multi-line string is not a directive (#144)", async () => {
+    const src =
+      'var doc: String = """\n# gdcorrect-ignore-file\n"""\n' +
+      "var s: String = '''\n# gdcorrect-ignore\nvar a = 1\n'''\n" +
+      'var b = 2  # gdcorrect-ignore\nvar c = """x"""  # gdcorrect-ignore\n';
+    // b and c are silenced by real comments; nothing else is silenced.
+    const one = "var a = 1\n";
+    expect(await lint(src + one)).toEqual(["untyped-declaration@10:warning"]);
+  });
 });
 
 describe("suppressions and rules config across scene/project checks", () => {
