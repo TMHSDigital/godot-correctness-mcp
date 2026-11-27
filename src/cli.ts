@@ -391,7 +391,7 @@ export async function runCli(
       return 0;
     }
     if (baseline) {
-      const r = applyBaseline(root, res.findings, readBaseline(baseline));
+      const r = applyBaseline(root, res.findings, readBaseline(baseline), only);
       res = {
         root,
         findings: r.newFindings,

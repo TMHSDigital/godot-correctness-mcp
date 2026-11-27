@@ -165,6 +165,19 @@ describe("baselines with other commands and formats", () => {
     expect(JSON.parse(r.out).findings.map((f: { file: string }) => f.file)).toEqual(["b.tscn"]);
   });
 
+  it("--baseline with --files does not count unlinted files' entries as stale (#106)", async () => {
+    const root = project("files-baseline", { "a.gd": "var a = 1\n", "b.gd": "var b = 1\n", "c.gd": "var c = 1\n" });
+    const b = join(root, "b.json");
+    await cli("lint", root, "--write-baseline", b);
+    const r = await cli("lint", root, "--files", join(root, "a.gd"), "--baseline", b);
+    expect(JSON.parse(r.out)).toMatchObject({ count: 0, baselined: 1, staleBaselineEntries: 0 });
+    expect(r.err).not.toContain("stale");
+    // A fixed finding in a linted file is still stale.
+    writeFileSync(join(root, "a.gd"), "var a: int = 1\n");
+    const fixed = await cli("lint", root, "--files", join(root, "a.gd"), "--baseline", b);
+    expect(JSON.parse(fixed.out)).toMatchObject({ count: 0, baselined: 0, staleBaselineEntries: 1 });
+  });
+
   it("--baseline with --format sarif emits only new results", async () => {
     const root = project("sarif-baseline", { "a.gd": "var a = 1\n" });
     const b = join(root, "b.json");

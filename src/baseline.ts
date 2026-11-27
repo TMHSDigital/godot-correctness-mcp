@@ -81,11 +81,23 @@ export interface BaselineResult {
   stale: number;
 }
 
-/** Split findings into new vs. baselined. */
-export function applyBaseline(root: string, findings: Finding[], baseline: BaselineFile): BaselineResult {
+/**
+ * Split findings into new vs. baselined. When the run checked only some files
+ * (`scope`, project-relative), entries for other files are not counted stale.
+ */
+export function applyBaseline(
+  root: string,
+  findings: Finding[],
+  baseline: BaselineFile,
+  scope?: Iterable<string>,
+): BaselineResult {
   const readLines = fileLineReader(root);
+  const inScope = scope ? new Set(scope) : null;
   const remaining = new Map<string, number>();
-  for (const e of baseline.entries) remaining.set(key(e.ruleId, e.file, e.fingerprint), e.count);
+  for (const e of baseline.entries) {
+    if (inScope && !inScope.has(e.file)) continue;
+    remaining.set(key(e.ruleId, e.file, e.fingerprint), e.count);
+  }
   const newFindings: Finding[] = [];
   let baselined = 0;
   for (const f of findings) {
