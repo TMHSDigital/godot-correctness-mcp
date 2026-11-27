@@ -143,4 +143,12 @@ describe("removed-api-usage target inferred from project.godot", () => {
     await expect(hits(SRC, { targetVersion: "4.5", fromVersion: "4.5" })).rejects.toThrow(/fromVersion/);
     await expect(hits(SRC, { targetVersion: "4.5", fromVersion: "3.6" })).rejects.toThrow(/fromVersion/);
   });
+
+  it("skips, not throws, when the inferred target equals an explicit fromVersion (#101)", async () => {
+    const same = project("from-same", '"4.4"', { rules: { [RULE]: { options: { fromVersion: "4.4" } } } });
+    expect(await ruleHits(same)).toEqual({ version: "4.4", hits: [] });
+    // An invalid fromVersion still fails, and the message names the inference.
+    const bad = project("from-bad", '"4.5"', { rules: { [RULE]: { options: { fromVersion: "3.6" } } } });
+    await expect(ruleHits(bad)).rejects.toThrow(/4\.5 \(inferred from project\.godot\)/);
+  });
 });

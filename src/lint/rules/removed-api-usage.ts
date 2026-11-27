@@ -97,6 +97,7 @@ export const removedApiUsage: Rule = {
   description: "Engine API removed (or call made invalid) in the target Godot version.",
   defaultSeverity: "warning",
   check(ctx) {
+    const targetInferred = ctx.options["targetVersion"] === undefined;
     const target = ctx.options["targetVersion"] ?? pinnedVersionFor(ctx.projectGodotVersion ?? null);
     if (target === undefined || target === null) return [];
     if (typeof target !== "string" || !(PINNED_GODOT_VERSIONS as readonly string[]).includes(target)) {
@@ -106,13 +107,17 @@ export const removedApiUsage: Rule = {
     }
     const fromOpt = ctx.options["fromVersion"];
     if (fromOpt !== undefined) {
+      // An inferred target that equals fromVersion leaves nothing to compare
+      // (the project already declares the version the config migrates from).
+      if (targetInferred && fromOpt === target) return [];
       // fromVersion may be newer than targetVersion (checking a downgrade), but
       // it must be a pinned version other than the target.
       const others = PINNED_GODOT_VERSIONS.filter((v) => v !== target);
       if (typeof fromOpt !== "string" || !(others as readonly string[]).includes(fromOpt)) {
+        const targetDesc = targetInferred ? `${target} (inferred from project.godot)` : target;
         throw new Error(
           `removed-api-usage: options.fromVersion must be one of ${others.join(", ") || "(none)"} ` +
-            `when targetVersion is ${target} (got ${JSON.stringify(fromOpt)}).`,
+            `when targetVersion is ${targetDesc} (got ${JSON.stringify(fromOpt)}).`,
         );
       }
     }
