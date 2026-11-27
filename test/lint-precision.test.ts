@@ -83,6 +83,12 @@ describe("near-miss negatives", () => {
         "\tvelocity = velocity.lerp(Vector2.ZERO, 5.0 * delta)\n\tmove_and_slide()\n",
     ],
     [
+      // Absolute position/rotation assignments do not accumulate per frame (#107).
+      "delta-misuse",
+      "extends Node2D\n\nfunc _process(_delta: float) -> void:\n" +
+        "\tposition = get_global_mouse_position()\n\trotation = 0.0\n",
+    ],
+    [
       "float-grid-equality",
       "extends Node\n\nfunc f(x: float, n: int) -> bool:\n\tif is_equal_approx(x, 0.5):\n\t\treturn true\n\treturn n == 5\n",
     ],

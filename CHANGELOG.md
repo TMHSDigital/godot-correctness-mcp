@@ -18,6 +18,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - SARIF artifact URIs are percent-encoded (spaces, `#`, `%`, non-ASCII). When the project is on a different drive from the working directory, the URI is an absolute `file:` URI with no `uriBaseId` (#104)
 - A bare `# gdcorrect-ignore` on a line that uses a node path or an input action is no longer reported as `unused-suppression` by the lint pass, which cannot see the scene and project findings it silences. The `scene-node-path-missing` suggestion now names the rule in the directive (#102)
 - `gdcorrect-ignore` text on a line inside a multi-line `"""` or `'''` string is no longer treated as a suppression directive (#144)
+- `delta-misuse` no longer reports absolute `position`/`rotation` assignments in `_process` (`position = get_global_mouse_position()`). Only `+=`/`-=`, or `=` from the current value, count as frame-rate dependent (#107)
 
 ## [0.2.0] - 2026-11-08
 

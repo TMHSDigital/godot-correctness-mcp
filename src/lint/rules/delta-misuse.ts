@@ -102,6 +102,9 @@ export const deltaMisuse: Rule = {
           fname &&
           PROCESS_FNS.has(fname) &&
           (target === "position" || target === "rotation") &&
+          // Only incremental changes accumulate per frame: `+=`/`-=`, or `=`
+          // from the current value. `position = mouse_pos` is absolute.
+          (stmt.type === "augmented_assignment" || containsIdentifier(right, target, ctx.source)) &&
           !containsIdentifier(right, "delta", ctx.source)
         ) {
           out.push({
