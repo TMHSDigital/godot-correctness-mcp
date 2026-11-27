@@ -158,8 +158,11 @@ changes when the inspector value applies) and
 
 JSON output for `lint` is a findings array (`file`, `line`, `col`, `ruleId`,
 `severity`, `message`, `suggestion`) plus `fileCount` and severity counts. With
-`--baseline`, the payload is `{ root, findings, count, baselined,
-staleBaselineEntries }` for every command. Exit codes: **0** no findings at or
+`--baseline`, each command keeps its own payload shape (baselined findings are
+removed from every findings list and the counts are recomputed) and adds
+`baselined` and `staleBaselineEntries`; the JSON matches the MCP tool given the
+same `baseline`. A relative `--baseline` path resolves against the current
+directory; the MCP tools' `baseline` argument resolves against the project root. Exit codes: **0** no findings at or
 above `--fail-on` (default `error`), **1** otherwise, **2** on a usage, config,
 or tool error.
 

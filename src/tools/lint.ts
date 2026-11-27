@@ -6,7 +6,7 @@ import { findProjectRoot, loadConfig } from "../lint/config.js";
 import { lintSource } from "../lint/engine.js";
 import { lintProject } from "../lint/project.js";
 import { requireDir } from "../project/walk.js";
-import { baselineFindings } from "../baseline.js";
+import { payloadWithBaseline } from "../baseline-payload.js";
 import { effectiveRules } from "../lint/catalog.js";
 import { guard } from "./result.js";
 import { BASELINE_ARG } from "./scenes.js";
@@ -63,16 +63,7 @@ export function registerLintTools(server: McpServer): void {
       guard(async () => {
         requireDir(path);
         const r = await lintProject(path);
-        if (!baseline) return r;
-        const b = baselineFindings(path, baseline, r.findings);
-        const count = (s: string): number => b.findings.filter((f) => f.severity === s).length;
-        return {
-          ...r,
-          ...b,
-          errorCount: count("error"),
-          warningCount: count("warning"),
-          infoCount: count("info"),
-        };
+        return payloadWithBaseline(path, { kind: "lint", payload: r }, r.findings, baseline);
       }),
   );
 

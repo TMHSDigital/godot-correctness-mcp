@@ -3,8 +3,7 @@ import { z } from "zod";
 import { projectReport, reportFindings, validateSceneFiles } from "../scenes/report.js";
 import { validateProjectConfig, validateRegistries } from "../scenes/validate.js";
 import { requireDir } from "../project/walk.js";
-import { baselineFindings } from "../baseline.js";
-import type { Finding } from "../lint/types.js";
+import { findingsPayload, payloadWithBaseline, registriesPayload } from "../baseline-payload.js";
 import { guard } from "./result.js";
 
 export const BASELINE_ARG = z
@@ -22,12 +21,6 @@ const ROOT_ARG = {
   baseline: BASELINE_ARG,
 };
 
-/** { root, findings, count } with an optional baseline applied. */
-function findingsPayload(root: string, findings: Finding[], baseline?: string): Record<string, unknown> {
-  if (!baseline) return { root, findings, count: findings.length };
-  const b = baselineFindings(root, baseline, findings);
-  return { root, ...b, count: b.findings.length };
-}
 const READ_ONLY = { readOnlyHint: true, openWorldHint: false } as const;
 
 /** Register the scene / resource / registry static-analysis tools. */
@@ -46,7 +39,8 @@ export function registerSceneTools(server: McpServer): void {
     async ({ path, baseline }) =>
       guard(async () => {
         requireDir(path);
-        return findingsPayload(path, await validateSceneFiles(path), baseline);
+        const findings = await validateSceneFiles(path);
+        return payloadWithBaseline(path, findingsPayload(path, findings), findings, baseline);
       }),
   );
 
@@ -62,7 +56,8 @@ export function registerSceneTools(server: McpServer): void {
     async ({ path, baseline }) =>
       guard(() => {
         requireDir(path);
-        return findingsPayload(path, validateProjectConfig(path), baseline);
+        const findings = validateProjectConfig(path);
+        return payloadWithBaseline(path, findingsPayload(path, findings), findings, baseline);
       }),
   );
 
@@ -80,8 +75,7 @@ export function registerSceneTools(server: McpServer): void {
       guard(() => {
         requireDir(path);
         const r = validateRegistries(path);
-        if (!baseline) return { root: path, ...r };
-        return { root: path, entries: r.entries, ...baselineFindings(path, baseline, r.findings) };
+        return payloadWithBaseline(path, registriesPayload(path, r), r.findings, baseline);
       }),
   );
 
@@ -98,25 +92,7 @@ export function registerSceneTools(server: McpServer): void {
       guard(async () => {
         requireDir(path);
         const r = await projectReport(path);
-        if (!baseline) return r;
-        // Filter each category down to the findings the baseline does not cover.
-        const b = baselineFindings(path, baseline, reportFindings(r));
-        const keep = new Set(b.findings);
-        const pick = (fs: Finding[]): Finding[] => fs.filter((f) => keep.has(f));
-        const count = (s: Finding["severity"]): number => b.findings.filter((f) => f.severity === s).length;
-        return {
-          ...r,
-          scenes: pick(r.scenes),
-          project: pick(r.project),
-          registries: pick(r.registries),
-          lint: pick(r.lint),
-          errorCount: count("error"),
-          warningCount: count("warning"),
-          infoCount: count("info"),
-          totalFindings: b.findings.length,
-          baselined: b.baselined,
-          staleBaselineEntries: b.staleBaselineEntries,
-        };
+        return payloadWithBaseline(path, { kind: "report", payload: r }, reportFindings(r), baseline);
       }),
   );
 }

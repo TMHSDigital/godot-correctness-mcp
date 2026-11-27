@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { applyBaseline, createBaseline, readBaseline, writeBaseline } from "./baseline.js";
+import { createBaseline, readBaseline, writeBaseline } from "./baseline.js";
+import { applyBaselineToPayload, findingsPayload, registriesPayload, type CommandPayload } from "./baseline-payload.js";
 import { isMainModule } from "./entry.js";
 import { applyFixes } from "./lint/fixes.js";
 import { effectiveRules } from "./lint/catalog.js";
@@ -30,6 +31,10 @@ interface CommandResult {
   payload: unknown;
 }
 
+function commandResult(root: string, findings: Finding[], cmd: CommandPayload): CommandResult & { cmd: CommandPayload } {
+  return { root, findings, payload: cmd.payload, cmd };
+}
+
 const COMMANDS = new Set([
   "lint",
   "validate-scenes",
@@ -38,28 +43,28 @@ const COMMANDS = new Set([
   "report",
 ]);
 
-async function runCommand(command: string, root: string, only?: string[]): Promise<CommandResult> {
+async function runCommand(command: string, root: string, only?: string[]): Promise<CommandResult & { cmd: CommandPayload }> {
   requireDir(root);
   switch (command) {
     case "lint": {
       const r = await lintProject(root, undefined, { only });
-      return { root, findings: r.findings, payload: r };
+      return commandResult(root, r.findings, { kind: "lint", payload: r });
     }
     case "validate-scenes": {
       const findings = await validateSceneFiles(root);
-      return { root, findings, payload: { root, findings, count: findings.length } };
+      return commandResult(root, findings, findingsPayload(root, findings));
     }
     case "validate-project": {
       const findings = validateProjectConfig(root);
-      return { root, findings, payload: { root, findings, count: findings.length } };
+      return commandResult(root, findings, findingsPayload(root, findings));
     }
     case "validate-registries": {
       const r = validateRegistries(root);
-      return { root, findings: r.findings, payload: { root, ...r } };
+      return commandResult(root, r.findings, registriesPayload(root, r));
     }
     case "report": {
       const r = await projectReport(root);
-      return { root, findings: reportFindings(r), payload: r };
+      return commandResult(root, reportFindings(r), { kind: "report", payload: r });
     }
     default:
       throw new Error(`Unknown command: ${command}`);
@@ -196,6 +201,7 @@ Commands:
 Options:
   -f, --format <${FORMATS.join("|")}>   Output format (default: json)
       --baseline <file>             Report only findings not in this baseline
+                                    (relative to the current directory)
       --write-baseline <file>       Record current findings as the baseline, exit 0
       --fail-on <${FAIL_ON.join("|")}>
                                     Lowest severity that fails the run (default: error)
@@ -381,7 +387,8 @@ export async function runCli(
         const untouched = res.findings.filter((f) => !changed.has(f.file));
         const partial = await lintProject(root, undefined, { only: changed });
         const findings = [...untouched, ...partial.findings].sort(compareFindings);
-        res = { root, findings, payload: { ...(res.payload as ProjectLintResult), findings, ...severityCounts(findings) } };
+        const lint = { ...(res.payload as ProjectLintResult), findings, ...severityCounts(findings) };
+        res = commandResult(root, findings, { kind: "lint", payload: lint });
       }
     }
     if (writeTo) {
@@ -391,18 +398,9 @@ export async function runCli(
       return 0;
     }
     if (baseline) {
-      const r = applyBaseline(root, res.findings, readBaseline(baseline), only);
-      res = {
-        root,
-        findings: r.newFindings,
-        payload: {
-          root,
-          findings: r.newFindings,
-          count: r.newFindings.length,
-          baselined: r.baselined,
-          staleBaselineEntries: r.stale,
-        },
-      };
+      // Same shape as without a baseline, and as the MCP tools return.
+      const r = applyBaselineToPayload(root, res.cmd, res.findings, readBaseline(baseline), only);
+      res = { ...res, findings: r.findings, payload: r.payload };
       errOut(
         `gdcorrect: ${r.baselined} finding(s) matched the baseline` +
           (r.stale ? `; ${r.stale} baseline entr${r.stale === 1 ? "y is" : "ies are"} stale (fixed) and can be removed by rewriting it.` : "."),

@@ -148,6 +148,56 @@ describe("CLI, MCP tools and report agree", () => {
   });
 });
 
+describe("CLI --baseline and MCP baseline payloads are identical (#103)", () => {
+  const root = join(tmp, "parity-baseline");
+  const write = (rel: string, body: string): void => {
+    mkdirSync(join(root, rel, ".."), { recursive: true });
+    writeFileSync(join(root, rel), body);
+  };
+  const tscn = (id: string) => `[gd_scene format=3]\n\n[node name="R" type="Node"]\nv = ExtResource("${id}")\n`;
+  const baseline = join(root, "b.json");
+
+  beforeAll(async () => {
+    const { runCli } = await import("../src/cli.js");
+    write("project.godot", '[application]\n\nrun/main_scene="res://missing.tscn"\n');
+    write("a.tscn", tscn("gone"));
+    write("a.gd", "var a = 1\n");
+    write("godot-correctness.config.json", JSON.stringify({ registryDirs: ["data"] }));
+    write("data/item.tres", '[gd_resource type="Resource" format=3]\n\n[resource]\nicon_path = "res://nope.png"\n');
+    await runCli(["report", root, "--write-baseline", baseline], () => {}, () => {});
+    // New findings after the baseline: one per category where possible.
+    write("b.tscn", tscn("also_gone"));
+    write("b.gd", "var b = 1\n");
+    write("data/other.tres", '[gd_resource type="Resource" format=3]\n\n[resource]\nicon_path = "res://gone.png"\n');
+  });
+
+  it.each([
+    ["lint", "lint_project"],
+    ["validate-scenes", "validate_scenes"],
+    ["validate-project", "validate_project_config"],
+    ["validate-registries", "validate_registries"],
+    ["report", "project_report"],
+  ])("%s matches %s, with and without a baseline", async (cmd, tool) => {
+    const { runCli } = await import("../src/cli.js");
+    for (const extra of [[], ["--baseline", baseline]]) {
+      let out = "";
+      await runCli([cmd, root, ...extra], (s) => (out += s), () => {});
+      const args = extra.length ? { path: root, baseline } : { path: root };
+      expect((await call(tool, args)).body).toEqual(JSON.parse(out));
+    }
+  });
+
+  it("the baseline payload keeps the command's shape and adds the baseline counts", async () => {
+    const r = (await call("project_report", { path: root, baseline })).body;
+    expect(r.baselined).toBeGreaterThan(0);
+    expect(r.totalFindings).toBe(r.scenes.length + r.project.length + r.registries.length + r.lint.length);
+    expect(r.registryEntries.length).toBeGreaterThan(0);
+    const reg = (await call("validate_registries", { path: root, baseline })).body;
+    expect(reg.count).toBe(reg.findings.length);
+    expect(reg.entries.length).toBeGreaterThan(0);
+  });
+});
+
 describe("list_rules and baseline arguments", () => {
   it("list_rules returns lint and scene rules, with a project's effective config", async () => {
     const defaults = (await call("list_rules", {})).body;

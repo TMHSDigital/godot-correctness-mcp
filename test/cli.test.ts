@@ -151,7 +151,7 @@ describe("baselines with other commands and formats", () => {
     expect((await cli("report", root, "--write-baseline", b)).code).toBe(0);
     const r = await cli("report", root, "--baseline", b);
     expect(r.code).toBe(0);
-    expect(JSON.parse(r.out)).toMatchObject({ findings: [], count: 0, baselined: 1, staleBaselineEntries: 0 });
+    expect(JSON.parse(r.out)).toMatchObject({ lint: [], totalFindings: 0, errorCount: 0, baselined: 1, staleBaselineEntries: 0 });
   });
 
   it("validate-scenes --baseline only reports new findings", async () => {
@@ -170,12 +170,12 @@ describe("baselines with other commands and formats", () => {
     const b = join(root, "b.json");
     await cli("lint", root, "--write-baseline", b);
     const r = await cli("lint", root, "--files", join(root, "a.gd"), "--baseline", b);
-    expect(JSON.parse(r.out)).toMatchObject({ count: 0, baselined: 1, staleBaselineEntries: 0 });
+    expect(JSON.parse(r.out)).toMatchObject({ findings: [], warningCount: 0, baselined: 1, staleBaselineEntries: 0 });
     expect(r.err).not.toContain("stale");
     // A fixed finding in a linted file is still stale.
     writeFileSync(join(root, "a.gd"), "var a: int = 1\n");
     const fixed = await cli("lint", root, "--files", join(root, "a.gd"), "--baseline", b);
-    expect(JSON.parse(fixed.out)).toMatchObject({ count: 0, baselined: 0, staleBaselineEntries: 1 });
+    expect(JSON.parse(fixed.out)).toMatchObject({ findings: [], baselined: 0, staleBaselineEntries: 1 });
   });
 
   it("--baseline with --format sarif emits only new results", async () => {
@@ -195,7 +195,7 @@ describe("baselines with other commands and formats", () => {
     await cli("lint", root, "--write-baseline", b);
     writeFileSync(join(root, "a.gd"), "var a = 1\nvar a = 1\nvar a = 1\n");
     const r = await cli("lint", root, "--baseline", b);
-    expect(JSON.parse(r.out)).toMatchObject({ count: 1, baselined: 2 });
+    expect(JSON.parse(r.out)).toMatchObject({ warningCount: 1, baselined: 2 });
   });
 
   it("a baseline written from CRLF source still matches after converting to LF", async () => {
@@ -203,7 +203,7 @@ describe("baselines with other commands and formats", () => {
     const b = join(root, "b.json");
     await cli("lint", root, "--write-baseline", b);
     writeFileSync(join(root, "a.gd"), "extends Node\nvar a = 1\n");
-    expect(JSON.parse((await cli("lint", root, "--baseline", b)).out)).toMatchObject({ count: 0, baselined: 1 });
+    expect(JSON.parse((await cli("lint", root, "--baseline", b)).out)).toMatchObject({ findings: [], baselined: 1 });
   });
 
   it("uses singular and plural wording for stale entries", async () => {
