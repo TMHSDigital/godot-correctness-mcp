@@ -1,6 +1,7 @@
 import type { Node } from "web-tree-sitter";
 import { commentStart } from "../gdscript/comments.js";
 import { parseGDScript } from "../gdscript/parser.js";
+import { compareText } from "../project/walk.js";
 import { hasInputActionCall } from "../scenes/input-actions.js";
 import {
   isRuleEnabled,
@@ -45,7 +46,7 @@ export async function lintSource(
       ? { ...f, severity: severityOverride(config, f.ruleId) ?? f.severity }
       : f,
   );
-  findings.sort((a, b) => a.line - b.line || a.col - b.col || a.ruleId.localeCompare(b.ruleId));
+  findings.sort((a, b) => a.line - b.line || a.col - b.col || compareText(a.ruleId, b.ruleId));
   return findings;
 }
 

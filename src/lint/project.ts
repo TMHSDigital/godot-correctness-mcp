@@ -1,4 +1,5 @@
 import { readSource, scriptFiles } from "../project/files.js";
+import { compareText } from "../project/walk.js";
 import { loadConfig, type ResolvedConfig } from "./config.js";
 import { lintSource } from "./engine.js";
 import type { Finding } from "./types.js";
@@ -49,7 +50,7 @@ export async function lintProject(
 
 /** Order findings by file, then line, then column. */
 export function compareFindings(a: Finding, b: Finding): number {
-  return a.file.localeCompare(b.file) || a.line - b.line || a.col - b.col;
+  return compareText(a.file, b.file) || a.line - b.line || a.col - b.col;
 }
 
 /** Count findings per severity. */

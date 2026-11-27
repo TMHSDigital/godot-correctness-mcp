@@ -6,6 +6,15 @@ export function toPosix(p: string): string {
   return p.split(sep).join("/");
 }
 
+/**
+ * Locale-independent string order (UTF-16 code units). `localeCompare` without
+ * a fixed locale depends on the machine's ICU locale, which would make output
+ * and written baselines differ between developers and CI.
+ */
+export function compareText(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 /** Directories never worth descending into: VCS data and Godot's import cache. */
 const ALWAYS_SKIPPED_DIRS = new Set([".git", ".godot"]);
 

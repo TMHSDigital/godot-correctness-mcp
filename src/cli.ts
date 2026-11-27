@@ -324,7 +324,22 @@ export async function runCli(
     log(readVersion());
     return 0;
   }
-  if (command === "rules") return listRules(root, format, log, errOut);
+  if (command === "rules") {
+    // Strict CLI: flags that only apply to the check commands are an error here.
+    const stray = [
+      baseline !== undefined && "--baseline",
+      writeTo !== undefined && "--write-baseline",
+      argv.some((a) => a === "--fail-on" || a.startsWith("--fail-on=")) && "--fail-on",
+      parsed.files.length > 0 && "--files",
+      parsed.changedSince !== undefined && "--changed-since",
+      parsed.fix && "--fix",
+    ].filter((s): s is string => typeof s === "string");
+    if (stray.length > 0) {
+      errOut(`gdcorrect: ${stray.join(", ")} do${stray.length === 1 ? "es" : ""} not apply to the rules command.`);
+      return 2;
+    }
+    return listRules(root, format, log, errOut);
+  }
   if (!command || !COMMANDS.has(command) || !root) {
     errOut(command && !COMMANDS.has(command) ? `gdcorrect: unknown command: ${command}\n${USAGE}` : USAGE);
     return 2;

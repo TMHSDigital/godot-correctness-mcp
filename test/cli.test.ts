@@ -324,3 +324,32 @@ describe("--files and --changed-since", () => {
     expect((await cli("lint", root, "--changed-since", "no-such-ref")).code).toBe(2);
   });
 });
+
+describe("rules command and output order (#109)", () => {
+  it.each([
+    [["rules", "--fail-on", "bogus"], "--fail-on"],
+    [["rules", "--fix"], "--fix"],
+    [["rules", "--files", "a.gd"], "--files"],
+    [["rules", "--baseline", "b.json"], "--baseline"],
+    [["rules", "--write-baseline", "b.json"], "--write-baseline"],
+    [["rules", "--changed-since", "HEAD"], "--changed-since"],
+  ])("%j is rejected with exit 2", async (argv, flag) => {
+    const r = await cli(...argv);
+    expect(r.code).toBe(2);
+    expect(r.err).toContain(`${flag} does not apply to the rules command`);
+  });
+
+  it("rules with no stray flags still works", async () => {
+    expect((await cli("rules")).code).toBe(0);
+  });
+
+  it("orders findings and baseline entries by code unit, not locale", async () => {
+    // Under most ICU locales "a.gd" sorts before "B.gd"; code-unit order puts "B" first.
+    const root = project("order", { "a.gd": "var a = 1\n", "B.gd": "var b = 1\n" });
+    const files = JSON.parse((await cli("lint", root)).out).findings.map((f: { file: string }) => f.file);
+    expect(files).toEqual(["B.gd", "a.gd"]);
+    const b = join(root, "b.json");
+    await cli("lint", root, "--write-baseline", b);
+    expect(JSON.parse(readFileSync(b, "utf-8")).entries.map((e: { file: string }) => e.file)).toEqual(["B.gd", "a.gd"]);
+  });
+});

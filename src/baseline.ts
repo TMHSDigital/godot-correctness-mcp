@@ -3,6 +3,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { z } from "zod";
 import type { Finding } from "./lint/types.js";
+import { compareText } from "./project/walk.js";
 
 const baselineSchema = z.object({
   version: z.literal(1),
@@ -67,7 +68,7 @@ export function createBaseline(root: string, findings: Finding[]): BaselineFile 
     else counts.set(k, { ruleId: f.ruleId, file: f.file, fingerprint: fp, count: 1 });
   }
   const entries = [...counts.values()].sort(
-    (a, b) => a.file.localeCompare(b.file) || a.ruleId.localeCompare(b.ruleId) || a.fingerprint.localeCompare(b.fingerprint),
+    (a, b) => compareText(a.file, b.file) || compareText(a.ruleId, b.ruleId) || compareText(a.fingerprint, b.fingerprint),
   );
   return { version: 1, entries };
 }
