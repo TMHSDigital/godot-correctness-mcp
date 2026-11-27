@@ -1,9 +1,9 @@
 import type { Node } from "web-tree-sitter";
 import {
+  calleeName,
   containsIdentifier,
   fieldText,
   findAll,
-  functionCalls,
   operatorOf,
   text,
   walk,
@@ -71,9 +71,17 @@ export const deltaMisuse: Rule = {
     const out: RawFinding[] = [];
     for (const fn of findAll(ctx.root, "function_definition")) {
       const fname = fieldText(fn, "name", ctx.source);
-      const callsMove = functionCalls(fn, "move_and_slide", ctx.source);
-      for (const stmt of walk(fn)) {
-        if (stmt.type !== "assignment" && stmt.type !== "augmented_assignment") continue;
+      // One pass over the function: collect assignments and note move_and_slide().
+      let callsMove = false;
+      const assignments: Node[] = [];
+      for (const n of walk(fn)) {
+        const t = n.type;
+        if (t === "assignment" || t === "augmented_assignment") assignments.push(n);
+        else if (!callsMove && (t === "call" || t === "attribute_call") && calleeName(n, ctx.source) === "move_and_slide") {
+          callsMove = true;
+        }
+      }
+      for (const stmt of assignments) {
         const left = stmt.childForFieldName("left");
         const right = stmt.childForFieldName("right");
         if (!left || !right) continue;

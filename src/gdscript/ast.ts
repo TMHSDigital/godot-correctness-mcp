@@ -10,7 +10,33 @@ export function* walk(node: Node): Generator<Node> {
     yield* indexFor(node).all;
     return;
   }
+  // A subtree is a contiguous slice of its tree's pre-order index; reuse it
+  // when the tree is already indexed instead of re-marshalling every child.
+  const index = typeIndex.get(node.tree);
+  const at = index ? indexOf(index.all, node) : -1;
+  if (index && at !== -1) {
+    const all = index.all;
+    const end = node.endIndex;
+    yield all[at]!;
+    for (let i = at + 1; i < all.length && all[i]!.startIndex < end; i++) yield all[i]!;
+    return;
+  }
   yield* walkSubtree(node);
+}
+
+/** Position of `node` in a pre-order index (sorted by startIndex), or -1. */
+function indexOf(all: Node[], node: Node): number {
+  const start = node.startIndex;
+  let lo = 0;
+  let hi = all.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >>> 1;
+    if (all[mid]!.startIndex < start) lo = mid + 1;
+    else hi = mid;
+  }
+  // Ancestors that start at the same offset come first in pre-order.
+  for (let i = lo; i < all.length && all[i]!.startIndex === start; i++) if (all[i]!.id === node.id) return i;
+  return -1;
 }
 
 function* walkSubtree(node: Node): Generator<Node> {

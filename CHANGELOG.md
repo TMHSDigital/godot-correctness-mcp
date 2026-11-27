@@ -9,6 +9,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 
 - `gdcorrect lint --fix` re-lints only the files it rewrote instead of the whole project (#130)
+- Subtree walks reuse the per-tree node index, and `delta-misuse` scans each function once instead of twice. On a 300-file benchmark `delta-misuse` drops from about 765 ms to 374 ms (#128)
 - `--baseline` no longer replaces the CLI's JSON payload with a generic `{ root, findings, count, baselined, staleBaselineEntries }`. Each command keeps its own shape (for example `report` keeps its categories, `registryEntries` and severity counts, and `lint` keeps `godotVersion` and `fileCount`), with baselined findings removed, counts recomputed, and `baselined`/`staleBaselineEntries` added. The CLI and the MCP tools now build payloads through one module, so their JSON is identical. `validate-registries` / `validate_registries` gain a `count` field. A relative `--baseline` path still resolves against the current directory, while the MCP `baseline` argument resolves against the project root; both are now documented (#103)
 
 ### Fixed
