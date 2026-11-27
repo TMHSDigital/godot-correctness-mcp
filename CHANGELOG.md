@@ -14,6 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 - `missing-onready` no longer offers an auto-fix for exported members: combining `@onready` with `@export` changes when the inspector value applies, so exported members are flagged without a fix. The rule also looks past comments between `@onready` and the declaration, so it no longer adds a duplicate tag (#100)
 - `removed-api-usage` no longer fails the run when `options.fromVersion` equals the target version inferred from `project.godot`; it skips the comparison instead, and the error for an invalid `fromVersion` says when the target was inferred (#101)
+- `scene-node-path-missing` no longer checks `$Path` and `get_node()` literals inside inner classes against the outer script's scene node (#105)
 
 ## [0.2.0] - 2026-11-08
 

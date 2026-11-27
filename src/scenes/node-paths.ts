@@ -27,6 +27,11 @@ function unquote(s: string): string {
   return s.length >= 2 && (s[0] === '"' || s[0] === "'") ? s.slice(1, -1) : s;
 }
 
+function insideInnerClass(n: Node): boolean {
+  for (let p = n.parent; p; p = p.parent) if (p.type === "class_definition") return true;
+  return false;
+}
+
 /** Literal relative node paths in a script (absolute, `..`, and `%Unique` paths are skipped). */
 function pathUses(root: Node, source: string): PathUse[] {
   const out: PathUse[] = [];
@@ -37,6 +42,9 @@ function pathUses(root: Node, source: string): PathUse[] {
     out.push({ path, line: n.startPosition.row + 1, col: n.startPosition.column + 1 });
   };
   for (const n of walk(root)) {
+    // Only the top-level class body is attached to the scene node; paths in an
+    // inner class refer to that class instance's own children.
+    if ((n.type === "get_node" || n.type === "call") && insideInnerClass(n)) continue;
     if (n.type === "get_node") {
       const t = text(n, source);
       if (t.startsWith("$")) add(unquote(t.slice(1)), n);

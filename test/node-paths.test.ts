@@ -71,4 +71,18 @@ describe("scene-node-path-missing", () => {
     const src = 'extends CharacterBody2D\n\nfunc f() -> void:\n\t$Spawned.show()  # gdcorrect-ignore[scene-node-path-missing]\n';
     expect(await scan("suppressed", { "Main.tscn": MAIN, "Gun.tscn": "[gd_scene format=3]\n", "player.gd": src })).toEqual([]);
   });
+
+  it("ignores paths inside inner classes, which refer to the inner instance (#105)", async () => {
+    const src =
+      "extends CharacterBody2D\n\n" +
+      "class Helper extends Node:\n" +
+      "\tfunc f() -> void:\n" +
+      "\t\t$Label.show()\n" +
+      '\t\tget_node("Other").show()\n\n' +
+      "func g() -> void:\n" +
+      "\t$Missing.show()\n"; // top-level -> line 9
+    expect(await scan("inner-class", { "Main.tscn": MAIN, "Gun.tscn": "[gd_scene format=3]\n", "player.gd": src })).toEqual([
+      'player.gd:9 Node path "Missing"',
+    ]);
+  });
 });
