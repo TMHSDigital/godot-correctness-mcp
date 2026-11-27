@@ -12,12 +12,13 @@ import type { Finding } from "./lint/types.js";
 import { changedSince, resolveProjectPaths } from "./project/changed.js";
 import { scriptFiles } from "./project/files.js";
 import { requireDir } from "./project/walk.js";
+import { toGithubAnnotations } from "./github-annotations.js";
 import { toSarif } from "./sarif.js";
 import { projectReport, reportFindings, validateSceneFiles } from "./scenes/report.js";
 import { validateProjectConfig, validateRegistries } from "./scenes/validate.js";
 import { readVersion } from "./server-info.js";
 
-const FORMATS = ["json", "pretty", "sarif"] as const;
+const FORMATS = ["json", "pretty", "sarif", "github"] as const;
 type Format = (typeof FORMATS)[number];
 
 function isFormat(s: string): s is Format {
@@ -232,6 +233,8 @@ function render(res: CommandResult, format: Format): string {
         null,
         2,
       );
+    case "github":
+      return toGithubAnnotations(res.findings, { projectRoot: res.root });
     case "json":
       return JSON.stringify(res.payload, null, 2);
   }

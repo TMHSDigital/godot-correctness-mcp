@@ -144,6 +144,7 @@ var hud := get_node("HUD")   # a comment-only directive applies to the next line
 gdcorrect lint <projectPath> --format json    # primary, machine-readable
 gdcorrect lint <projectPath> --format pretty  # human-readable
 gdcorrect lint <projectPath> --format sarif   # SARIF 2.1.0 for code scanning
+gdcorrect lint <projectPath> --format github  # GitHub Actions annotations (::error file=...::)
 gdcorrect lint <projectPath> --fail-on warning  # also fail on warnings
 gdcorrect --help                              # every command, option, and exit code
 ```

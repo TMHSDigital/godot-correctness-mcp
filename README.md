@@ -77,7 +77,7 @@ resources, signal hygiene, typed GDScript, preload vs load).
 
 | Option | Meaning |
 |--------|---------|
-| `-f`, `--format json\|pretty\|sarif` | Output format (default `json`). `sarif` emits SARIF 2.1.0 for GitHub code scanning. |
+| `-f`, `--format json\|pretty\|sarif\|github` | Output format (default `json`). `sarif` emits SARIF 2.1.0 for GitHub code scanning; `github` prints workflow-command annotations that show inline on pull requests with no upload step. |
 | `--fail-on error\|warning\|info\|none` | Lowest severity that fails the run (default `error`). |
 | `--baseline <file>` / `--write-baseline <file>` | Report only new findings / record the current ones (see below). |
 | `--fix` | `lint` only: apply machine-applicable fixes in place (`missing-onready` adds `@onready`; `stringly-nodepath` turns a plain `get_node("A/B")` into `$A/B`), then report what remains. |

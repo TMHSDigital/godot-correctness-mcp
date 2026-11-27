@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+
+- `--format github` prints GitHub Actions workflow-command annotations (`::error file=...,line=...,col=...,title=<rule>::<message>`, with `info` as `::notice`), so findings show inline on pull requests without SARIF upload or code scanning (#123)
+
 ### Changed
 
 - `gdcorrect lint --fix` re-lints only the files it rewrote instead of the whole project (#130)
