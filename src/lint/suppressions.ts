@@ -57,7 +57,9 @@ function covers(d: Directive, f: Finding): boolean {
  * silenced nothing are returned as `unused-suppression` info findings when
  * `reportUnused` is true. A directive whose named rules are all out of scope
  * for this pass (`outOfScope`, e.g. scene checks or rules disabled in config)
- * is never reported as unused, since this pass could not have used it.
+ * is never reported as unused, since this pass could not have used it. Likewise
+ * a bare line directive (no rule list) whose target line `otherPassLine` says
+ * another pass may flag is not reported, since it may be silencing that pass.
  */
 export function applySuppressions(
   file: string,
@@ -65,6 +67,7 @@ export function applySuppressions(
   findings: Finding[],
   reportUnused: boolean,
   outOfScope: (ruleId: string) => boolean = () => false,
+  otherPassLine: (line: number) => boolean = () => false,
 ): Finding[] {
   if (!source.includes("gdcorrect-ignore")) return findings;
   const directives = parseDirectives(source);
@@ -80,6 +83,7 @@ export function applySuppressions(
     for (const d of directives) {
       if (d.used) continue;
       if (d.rules && [...d.rules].every(outOfScope)) continue;
+      if (!d.rules && d.target !== null && otherPassLine(d.target)) continue;
       const which = d.rules ? [...d.rules].join(", ") : "all rules";
       kept.push({
         file,

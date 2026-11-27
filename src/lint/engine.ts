@@ -1,5 +1,7 @@
 import type { Node } from "web-tree-sitter";
+import { commentStart } from "../gdscript/comments.js";
 import { parseGDScript } from "../gdscript/parser.js";
+import { hasInputActionCall } from "../scenes/input-actions.js";
 import {
   isRuleEnabled,
   ruleOptions,
@@ -37,6 +39,7 @@ export async function lintSource(
     // Scene/project checks (e.g. scene-node-path-missing) apply their own
     // directives, and a disabled rule has nothing to suppress.
     (id) => SCENE_RULE_IDS.has(id) || !isRuleEnabled(config, id),
+    (line) => sceneCheckedLine(source, line),
   ).map((f) =>
     f.ruleId === UNUSED_SUPPRESSION_RULE
       ? { ...f, severity: severityOverride(config, f.ruleId) ?? f.severity }
@@ -44,6 +47,21 @@ export async function lintSource(
   );
   findings.sort((a, b) => a.line - b.line || a.col - b.col || a.ruleId.localeCompare(b.ruleId));
   return findings;
+}
+
+const NODE_PATH_RE = /\$|\bget_node(?:_or_null)?\s*\(/;
+
+/**
+ * Whether a scene/project check may report on this 1-based line: it uses a
+ * node path (scene-node-path-missing) or an input action
+ * (project-input-action-undefined). A bare `# gdcorrect-ignore` there may be
+ * silencing that check, which the lint pass cannot see.
+ */
+function sceneCheckedLine(source: string, line: number): boolean {
+  const raw = source.split(/\r?\n/, line)[line - 1] ?? "";
+  const cut = commentStart(raw);
+  const code = cut === -1 ? raw : raw.slice(0, cut);
+  return NODE_PATH_RE.test(code) || hasInputActionCall(code);
 }
 
 /** Offsets of the first character of every line. */

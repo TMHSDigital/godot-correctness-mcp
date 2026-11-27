@@ -124,7 +124,7 @@ export async function validateNodePaths(root: string, config?: ResolvedConfig): 
           ruleId: "scene-node-path-missing",
           severity: "warning",
           message: `Node path "${use.path}" does not exist under this script's node in ${scenes}.`,
-          suggestion: "Fix the path, rename the node, or (if the node is added at runtime) suppress with # gdcorrect-ignore.",
+          suggestion: "Fix the path, rename the node, or (if the node is added at runtime) suppress with # gdcorrect-ignore[scene-node-path-missing].",
         });
       }
     } finally {

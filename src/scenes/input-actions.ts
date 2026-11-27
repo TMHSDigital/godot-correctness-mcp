@@ -11,6 +11,13 @@ import { readSource, scriptFiles } from "../project/files.js";
  */
 const ACTION_CALL_RE =
   /\b(is_action_pressed|is_action_just_pressed|is_action_just_released|is_action_released|is_action|get_action_strength|get_action_raw_strength|action_press|action_release|get_axis|get_vector)\s*\(([^()]*)\)/g;
+const ACTION_CALL_TEST_RE = new RegExp(ACTION_CALL_RE.source);
+
+/** Whether a line of code (comment already stripped) calls an input-action API. */
+export function hasInputActionCall(code: string): boolean {
+  return ACTION_CALL_TEST_RE.test(code);
+}
+
 /** An argument that is exactly one string (or StringName) literal. */
 const WHOLE_STRING_ARG_RE = /^\s*&?"((?:[^"\\]|\\.)*)"\s*$/;
 

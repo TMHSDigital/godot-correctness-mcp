@@ -91,6 +91,17 @@ describe("suppressions and rules config across scene/project checks", () => {
     expect(await ids(project("docs-example", files))).toEqual([]);
   });
 
+  it("bare directives that silence scene/project findings are not reported as unused (#102)", async () => {
+    const bare =
+      "extends Node\n\n" +
+      "@onready var hud: Node = $RuntimeHUD  # gdcorrect-ignore\n\n" +
+      "func _process(_d: float) -> void:\n" +
+      '\tif Input.is_action_pressed("jmp"):  # gdcorrect-ignore\n' +
+      "\t\tpass\n" +
+      "\tvar x := 1  # gdcorrect-ignore\n"; // matches nothing anywhere -> still reported
+    expect(await ids(project("bare", { ...files, "main.gd": bare }))).toEqual(["unused-suppression@8:info"]);
+  });
+
   it("without the directives both findings are reported", async () => {
     const got = await ids(project("no-directives", { ...files, "main.gd": plain }));
     expect(got).toContain("scene-node-path-missing@3:warning");

@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/).
 - `removed-api-usage` no longer fails the run when `options.fromVersion` equals the target version inferred from `project.godot`; it skips the comparison instead, and the error for an invalid `fromVersion` says when the target was inferred (#101)
 - `scene-node-path-missing` no longer checks `$Path` and `get_node()` literals inside inner classes against the outer script's scene node (#105)
 - SARIF artifact URIs are percent-encoded (spaces, `#`, `%`, non-ASCII). When the project is on a different drive from the working directory, the URI is an absolute `file:` URI with no `uriBaseId` (#104)
+- A bare `# gdcorrect-ignore` on a line that uses a node path or an input action is no longer reported as `unused-suppression` by the lint pass, which cannot see the scene and project findings it silences. The `scene-node-path-missing` suggestion now names the rule in the directive (#102)
 
 ## [0.2.0] - 2026-11-08
 

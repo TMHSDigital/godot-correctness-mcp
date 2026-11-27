@@ -133,8 +133,10 @@ var hud := get_node("HUD")   # a comment-only directive applies to the next line
   `info` finding so stale comments get cleaned up. Configure it like any rule
   (`"rules": { "unused-suppression": { "enabled": false } }`). The lint pass
   never reports a directive as unused when every rule it names is a
-  scene/project check or is disabled in config; name the rule explicitly
-  (rather than a bare `# gdcorrect-ignore`) when silencing those checks.
+  scene/project check or is disabled in config. A bare `# gdcorrect-ignore`
+  on a line that uses a node path or an input action is also never reported
+  as unused, since it may be silencing one of those checks. Naming the rule
+  explicitly is still clearer.
 
 ## CLI
 
