@@ -1,4 +1,5 @@
-import { join, relative } from "node:path";
+import { isAbsolute, join, relative } from "node:path";
+import { pathToFileURL } from "node:url";
 import { RULE_INFO } from "./lint/catalog.js";
 import type { Finding, Severity } from "./lint/types.js";
 import { toPosix } from "./project/walk.js";
@@ -11,6 +12,17 @@ const LEVEL: Record<Severity, "error" | "warning" | "note"> = {
 
 function ruleDescription(id: string): string {
   return RULE_INFO.get(id)?.description ?? id;
+}
+
+/**
+ * SARIF artifact location for a file: a percent-encoded URI relative to `cwd`
+ * (`%SRCROOT%`), or an absolute `file:` URI when no relative path exists
+ * (a different drive on Windows). Paths outside `cwd` keep a `../` relative form.
+ */
+export function artifactLocationFor(full: string, cwd: string): { uri: string; uriBaseId?: string } {
+  const rel = relative(cwd, full);
+  if (isAbsolute(rel)) return { uri: pathToFileURL(full).href };
+  return { uri: toPosix(rel).split("/").map(encodeURIComponent).join("/"), uriBaseId: "%SRCROOT%" };
 }
 
 /**
@@ -43,10 +55,7 @@ export function toSarif(
           },
         },
         results: findings.map((f) => {
-          const artifactLocation = {
-            uri: toPosix(relative(cwd, join(opts.projectRoot, f.file))),
-            uriBaseId: "%SRCROOT%",
-          };
+          const artifactLocation = artifactLocationFor(join(opts.projectRoot, f.file), cwd);
           return {
             ruleId: f.ruleId,
             ruleIndex: ruleIndex.get(f.ruleId),

@@ -3,7 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { runCli } from "../src/cli.js";
 import type { Finding } from "../src/lint/types.js";
-import { toSarif } from "../src/sarif.js";
+import { artifactLocationFor, toSarif } from "../src/sarif.js";
 
 const fixture = (rel: string): string => fileURLToPath(new URL(`./fixtures/${rel}`, import.meta.url));
 
@@ -39,6 +39,22 @@ describe("toSarif", () => {
     expect(a.locations[0].physicalLocation.artifactLocation.uri).toBe("game/scripts/a.gd");
     expect(a.locations[0].physicalLocation.region).toEqual({ startLine: 3, startColumn: 5 });
     expect(a.message.text).toBe("M. S.");
+  });
+
+  it("percent-encodes URIs, including fix locations (#104)", () => {
+    const f: Finding = {
+      file: "a#b%.gd", line: 1, col: 1, ruleId: "untyped-declaration", severity: "warning", message: "M.", suggestion: "",
+      fix: { description: "d", edits: [{ startLine: 1, startCol: 1, endLine: 1, endCol: 1, replacement: "x" }] },
+    };
+    const r = (toSarif([f], { projectRoot: join("/repo", "my dir"), version: "1", cwd: "/repo" }) as any).runs[0].results[0];
+    const loc = { uri: "my%20dir/a%23b%25.gd", uriBaseId: "%SRCROOT%" };
+    expect(r.locations[0].physicalLocation.artifactLocation).toEqual(loc);
+    expect(r.fixes[0].artifactChanges[0].artifactLocation).toEqual(loc);
+  });
+
+  it.runIf(process.platform === "win32")("uses an absolute file: URI with no base across drives (#104)", () => {
+    const loc = artifactLocationFor("C:\\proj\\a b.gd", "E:\\");
+    expect(loc).toEqual({ uri: "file:///C:/proj/a%20b.gd" });
   });
 });
 
