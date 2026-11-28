@@ -1,4 +1,4 @@
-import { commentStart } from "../gdscript/comments.js";
+import { codeStarts, commentStart } from "../gdscript/comments.js";
 import { applySuppressions } from "../lint/suppressions.js";
 import type { Finding } from "../lint/types.js";
 import type { ResolvedConfig } from "../lint/config.js";
@@ -67,12 +67,20 @@ export function checkInputActionUsage(
   for (const { full, rel } of scriptFiles(root, cfg)) {
     const source = readSource(root, cfg, full);
     const fileFindings: Finding[] = [];
+    const starts = codeStarts(source);
     source.split(/\r?\n/).forEach((rawLine, i) => {
       if (!rawLine.includes("action") && !rawLine.includes("get_axis") && !rawLine.includes("get_vector")) return;
-      const cut = commentStart(rawLine);
-      const code = cut === -1 ? rawLine : rawLine.slice(0, cut);
+      const start = starts[i]!;
+      // A line entirely inside a multi-line string holds no code to check.
+      if (start === -1) return;
+      // The comment cut runs on the code portion: on a line that closed a
+      // multi-line string, per-line quote tracking from column 0 would see
+      // the dangling closing quotes and misread what follows.
+      const remainder = rawLine.slice(start);
+      const cut = commentStart(remainder);
+      const code = cut === -1 ? remainder : remainder.slice(0, cut);
       for (const call of code.matchAll(ACTION_CALL_RE)) {
-        const argsStart = call.index! + call[0].indexOf("(") + 1;
+        const argsStart = start + call.index! + call[0].indexOf("(") + 1;
         // Only arguments that are entirely a string literal name an action;
         // `prefix + "_jump"` or `"p%d_jump" % n` are built at runtime.
         for (const arg of splitArgs(call[2]!)) {
