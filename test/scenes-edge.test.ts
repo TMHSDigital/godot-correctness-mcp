@@ -304,6 +304,33 @@ describe("project-input-action-undefined", () => {
     ]);
   });
 
+  it("ignores action calls inside multi-line strings but still checks the code around them", () => {
+    const root = project("input-actions-multiline-string", {
+      "project.godot": PROJECT,
+      "a.gd":
+        "extends Node\n\n" +
+        'const HELP := """\n' +
+        'Use Input.is_action_pressed("jmp") to check.\n' +
+        '"""\n' +
+        "func _process(_delta: float) -> void:\n" +
+        '\tif Input.is_action_pressed("jmup"):\n' + // code after the string -> flagged
+        "\t\tpass\n",
+      "b.gd":
+        "extends Node\n\n" +
+        'const HELP := """\n' +
+        'Mentions Input.get_axis("left", "rigth").\n' +
+        '""" # Input.is_action_pressed("commented")\n' +
+        'var after := Input.get_action_strength("strng") # same line as the closing quotes\n',
+    });
+    const hits = validateProjectConfig(root)
+      .filter((f) => f.ruleId === "project-input-action-undefined")
+      .map((f) => `${f.file}:${f.line}:${f.col} ${f.message}`);
+    expect(hits).toEqual([
+      'a.gd:7:29 Input action "jmup" is not defined in project.godot [input].',
+      'b.gd:6:40 Input action "strng" is not defined in project.godot [input].',
+    ]);
+  });
+
   it("ignores action names built by concatenation or formatting", () => {
     const root = project("input-actions-dynamic", {
       "project.godot": "[input]\n\np1_jump={\n\"events\": []\n}\np2_jump={\n\"events\": []\n}\n",
